@@ -24,6 +24,20 @@
 int carbons_cmd_id;
 int mode_global;
 
+static int carbons_is_valid(PurpleAccount * acc_p, xmlnode * outer_msg_stanza_p) {
+  char ** split;
+
+  split = g_strsplit(purple_account_get_username(acc_p), "/", 2);
+
+  if (g_strcmp0(split[0], xmlnode_get_attrib(outer_msg_stanza_p, "from"))) {
+    g_strfreev(split);
+    return 0;
+  } else {
+    g_strfreev(split);
+    return 1;
+  }
+}
+
 static void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
   xmlnode * carbons_node_p = (void *) 0;
   xmlnode * forwarded_node_p = (void *) 0;
@@ -36,6 +50,11 @@ static void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
   carbons_node_p = xmlnode_get_child_with_namespace(*stanza_pp, "received", CARBONS_XMLNS);
   if (carbons_node_p) {
     purple_debug_info("carbons", "Received carbon copy of a received message.\n");
+
+    if (!carbons_is_valid(purple_connection_get_account(gc_p), *stanza_pp)) {
+      purple_debug_warning("carbons", "Received carbon copy with invalid sender! (Ignoring.)\n");
+      return;
+    }
 
     forwarded_node_p = xmlnode_get_child(carbons_node_p, "forwarded");
     if (!forwarded_node_p) {
@@ -58,6 +77,11 @@ static void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
   carbons_node_p = xmlnode_get_child_with_namespace(*stanza_pp, "sent", CARBONS_XMLNS);
   if (carbons_node_p) {
     purple_debug_info("carbons", "Received carbon copy of a sent message.\n");
+
+    if (!carbons_is_valid(purple_connection_get_account(gc_p), *stanza_pp)) {
+      purple_debug_warning("carbons", "Received carbon copy with invalid sender! (Ignoring.)\n");
+      return;
+    }
 
     forwarded_node_p = xmlnode_get_child(carbons_node_p, "forwarded");
     if (!forwarded_node_p) {
@@ -234,7 +258,7 @@ static PurplePluginInfo info = {
 
     "core-riba-carbons",
     "carbons",
-    "0.1.0",
+    "0.1.1",
 
     "Implements XEP-0280: Message Carbons as a plugin.",
     "This plugin enables a consistent history view across multiple devices.",
