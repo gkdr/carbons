@@ -258,7 +258,7 @@ static PurplePluginInfo info = {
     PURPLE_PRIORITY_DEFAULT,
 
     "core-riba-carbons",
-    "carbons",
+    "XMPP Message Carbons",
     "0.1.2",
 
     "Implements XEP-0280: Message Carbons as a plugin.",
