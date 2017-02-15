@@ -97,7 +97,10 @@ static void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
 
     body_node_p = xmlnode_get_child(msg_node_p, "body");
     if (!body_node_p) {
-      purple_debug_info("carbons", "Received carbon copy does not contain a message body, ignoring.\n");
+      msg_node_p = xmlnode_copy(msg_node_p);
+      xmlnode_free(*stanza_pp);
+      *stanza_pp = msg_node_p;
+
       return;
     }
 
@@ -206,8 +209,6 @@ static PurpleCmdRet carbons_cmd_func(PurpleConversation * conv_p,
   char * msg = (void *) 0;
   const char * username = purple_account_get_username(purple_conversation_get_account(conv_p));
 
-  //FIXME: save as user setting and do at every start
-
   if (!g_strcmp0(args[0], "on")) {
     msg = g_strdup_printf("Turning carbons ON for %s...", username);
     carbons_switch_do(conv_p, CARBONS_ENABLE);
@@ -241,7 +242,7 @@ carbons_plugin_load(PurplePlugin * plugin_p) {
                                      (void *) 0);
 
   (void) purple_signal_connect(purple_accounts_get_handle(), "account-signed-on", plugin_p, PURPLE_CALLBACK(carbons_account_connect_cb), NULL);
-  (void) purple_signal_connect(purple_plugins_find_with_id("prpl-jabber"), "jabber-receiving-xmlnode", plugin_p, PURPLE_CALLBACK(carbons_xml_received_cb), NULL);
+  (void) purple_signal_connect_priority(purple_plugins_find_with_id("prpl-jabber"), "jabber-receiving-xmlnode", plugin_p, PURPLE_CALLBACK(carbons_xml_received_cb), NULL, PURPLE_PRIORITY_LOWEST);
 
   return TRUE;
 }
@@ -258,7 +259,7 @@ static PurplePluginInfo info = {
 
     "core-riba-carbons",
     "carbons",
-    "0.1.1",
+    "0.1.2",
 
     "Implements XEP-0280: Message Carbons as a plugin.",
     "This plugin enables a consistent history view across multiple devices.",
