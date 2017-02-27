@@ -30,6 +30,7 @@ static int carbons_is_valid(PurpleAccount * acc_p, xmlnode * outer_msg_stanza_p)
   split = g_strsplit(purple_account_get_username(acc_p), "/", 2);
 
   if (g_strcmp0(split[0], xmlnode_get_attrib(outer_msg_stanza_p, "from"))) {
+    purple_debug_warning("carbons", "Invalid sender: %s (should be: %s)\n", xmlnode_get_attrib(outer_msg_stanza_p, "from"), split[0]);
     g_strfreev(split);
     return 0;
   } else {
@@ -79,7 +80,7 @@ static void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
     purple_debug_info("carbons", "Received carbon copy of a sent message.\n");
 
     if (!carbons_is_valid(purple_connection_get_account(gc_p), *stanza_pp)) {
-      purple_debug_warning("carbons", "Received carbon copy with invalid sender! (Ignoring.)\n");
+      purple_debug_warning("carbons", "Ignoring received carbon copy with invalid sender! (Ignoring.)\n");
       return;
     }
 
