@@ -1,0 +1,38 @@
+PURPLE_PLUGIN_DIR = c:/Program\ Files\ \(x86\)/Pidgin/plugins
+PIDGIN_DIR ?= ../pidgin-2.11.0
+LIBPURPLE_DIR ?= $(PIDGIN_DIR)/libpurple
+WIN32_DEV_TOP ?= $(PIDGIN_DIR)/../win32-dev
+LIBXML2_TOP ?= $(WIN32_DEV_TOP)/libxml2-2.9.0
+
+CC := $(WIN32_DEV_TOP)/mingw-4.7.2/bin/gcc
+
+LDIR = ./lib
+BDIR = ./build
+SDIR = ./src
+HDIR = ./headers
+
+HEADERS = -I$(HDIR)/jabber
+
+PKGCFG_C = -I$(WIN32_DEV_TOP)/glib-2.28.8/include -I$(WIN32_DEV_TOP)/glib-2.28.8/include/glib-2.0 -I$(WIN32_DEV_TOP)/glib-2.28.8/lib/glib-2.0/include -I$(LIBPURPLE_DIR) -I$(LIBPURPLE_DIR)/protocols/jabber -I$(LIBXML2_TOP)/include/libxml2
+PKGCFG_L = -L$(WIN32_DEV_TOP)/glib-2.28.8/lib -lglib-2.0 -L$(LIBPURPLE_DIR) -lpurple -L$(LIBPURPLE_DIR)/protocols/jabber -L$(LIBXML2_TOP)/lib -lxml2
+
+CFLAGS = -std=c11 -Wall -g -Wstrict-overflow -D_XOPEN_SOURCE=700 -D_BSD_SOURCE $(PKGCFG_C) $(HEADERS)
+LFLAGS = $(PKGCFG_L) -ljabber -static-libgcc
+
+
+all: $(BDIR)/carbons.dll
+
+$(BDIR):
+	mkdir -p build
+	
+$(BDIR)/carbons.dll: $(SDIR)/carbons.c $(BDIR)
+	$(CC) $(CFLAGS) -c $(SDIR)/carbons.c -o $(BDIR)/carbons.o
+	$(CC) -shared $(CFLAGS) $(BDIR)/carbons.o -o $@ $(LFLAGS)
+	
+install: $(BDIR)/carbons.dll
+	mkdir -p $(PURPLE_PLUGIN_DIR)
+	install -p $(BDIR)/carbons.dll $(PURPLE_PLUGIN_DIR)/carbons.dll
+
+.PHONY: clean
+clean:
+	rm -rf $(BDIR)
