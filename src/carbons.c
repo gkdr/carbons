@@ -53,19 +53,19 @@ static void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
     purple_debug_info("carbons", "Received carbon copy of a received message.\n");
 
     if (!carbons_is_valid(purple_connection_get_account(gc_p), *stanza_pp)) {
-      purple_debug_warning("carbons", "Received carbon copy with invalid sender! (Ignoring.)\n");
+      purple_debug_warning("carbons", "Ignoring carbon copy of received message with invalid sender.\n");
       return;
     }
 
     forwarded_node_p = xmlnode_get_child(carbons_node_p, "forwarded");
     if (!forwarded_node_p) {
-      purple_debug_error("carbons", "Received carbon copy does not contain a 'forwarded' node, ignoring.\n");
+      purple_debug_error("carbons", "Ignoring carbon copy of received message that does not contain a 'forwarded' node.\n");
       return;
     }
 
     msg_node_p = xmlnode_get_child(forwarded_node_p, "message");
     if (!msg_node_p) {
-      purple_debug_error("carbons", "Received carbon copy does not contain a 'message' node, ignoring.\n");
+      purple_debug_error("carbons", "Ignoring carbon copy of received message that does not contain a 'message' node.\n");
       return;
     }
 
@@ -80,24 +80,25 @@ static void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
     purple_debug_info("carbons", "Received carbon copy of a sent message.\n");
 
     if (!carbons_is_valid(purple_connection_get_account(gc_p), *stanza_pp)) {
-      purple_debug_warning("carbons", "Ignoring received carbon copy with invalid sender! (Ignoring.)\n");
+      purple_debug_warning("carbons", "Ignoring carbon copy of sent message with invalid sender.\n");
       return;
     }
 
     forwarded_node_p = xmlnode_get_child(carbons_node_p, "forwarded");
     if (!forwarded_node_p) {
-      purple_debug_error("carbons", "Received carbon copy does not contain a 'forwarded' node, ignoring.\n");
+      purple_debug_error("carbons", "Ignoring carbon copy of sent message that does not contain a 'forwarded' node.\n");
       return;
     }
 
     msg_node_p = xmlnode_get_child(forwarded_node_p, "message");
     if (!msg_node_p) {
-      purple_debug_error("carbons", "Received carbon copy does not contain a 'message' node, ignoring.\n");
+      purple_debug_error("carbons", "Ignoring carbon copy of sent message that does not contain a 'message' node.\n");
       return;
     }
 
     body_node_p = xmlnode_get_child(msg_node_p, "body");
     if (!body_node_p) {
+      purple_debug_info("carbons", "Carbon copy of sent message does not contain a body - stripping and passing it through.\n");
       msg_node_p = xmlnode_copy(msg_node_p);
       xmlnode_free(*stanza_pp);
       *stanza_pp = msg_node_p;
@@ -111,6 +112,7 @@ static void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
       conv_p = purple_conversation_new(PURPLE_CONV_TYPE_IM, purple_connection_get_account(gc_p), buddy_name_bare);
     }
 
+    purple_debug_info("carbons", "Writing body of the carbon copy of a sent message to the conversation window with %s.\n", buddy_name_bare);
     purple_conversation_write(conv_p, xmlnode_get_attrib(msg_node_p, "from"), xmlnode_get_data(body_node_p), PURPLE_MESSAGE_SEND, time((void *) 0));
 
     g_free(buddy_name_bare);
@@ -232,6 +234,8 @@ static PurpleCmdRet carbons_cmd_func(PurpleConversation * conv_p,
 static gboolean
 carbons_plugin_load(PurplePlugin * plugin_p) {
 
+  (void) jabber_add_feature(CARBONS_XMLNS, (void *) 0);
+
   carbons_cmd_id = purple_cmd_register("carbons",
                                      "w",
                                      PURPLE_CMD_P_PLUGIN,
@@ -243,7 +247,7 @@ carbons_plugin_load(PurplePlugin * plugin_p) {
                                      (void *) 0);
 
   (void) purple_signal_connect(purple_accounts_get_handle(), "account-signed-on", plugin_p, PURPLE_CALLBACK(carbons_account_connect_cb), NULL);
-  (void) purple_signal_connect_priority(purple_plugins_find_with_id("prpl-jabber"), "jabber-receiving-xmlnode", plugin_p, PURPLE_CALLBACK(carbons_xml_received_cb), NULL, PURPLE_PRIORITY_LOWEST);
+  (void) purple_signal_connect_priority(purple_plugins_find_with_id("prpl-jabber"), "jabber-receiving-xmlnode", plugin_p, PURPLE_CALLBACK(carbons_xml_received_cb), NULL, PURPLE_PRIORITY_LOWEST + 100);
 
   return TRUE;
 }
@@ -260,10 +264,10 @@ static PurplePluginInfo info = {
 
     "core-riba-carbons",
     "XMPP Message Carbons",
-    "0.1.2",
+    "0.1.3",
 
     "Implements XEP-0280: Message Carbons as a plugin.",
-    "This plugin enables a consistent history view across multiple devices.",
+    "This plugin enables a consistent history view across multiple devices which are online at the same time.",
     "Richard Bayerle <riba@firemail.cc>",
     "https://github.com/gkdr/carbons",
 
