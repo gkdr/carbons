@@ -14,6 +14,9 @@ _Note_: On Fedora, linking will fail because for some reason `-ljabber` is calle
 ### Windows
 Thanks to EionRobb, you can find a compiled dll to put in your plugin folder here: https://eion.robbmob.com/xmpp-carbons/
 
+If you want to compile it yourself, you can make use of the `Makefile.mingw` also provided by EionRobb.
+For this, you have to set up a build environment as described in https://developer.pidgin.im/wiki/BuildingWinPidgin .
+
 ## Usage
 As some servers might not support message carbons or for some reason disallow enabling them, you have to activate them individually for every account.
 To do this, open any chat window from that account and type `/carbons on`. You should see the result immediately (success or error). It will then enable carbons at every startup.
