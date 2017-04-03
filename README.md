@@ -9,8 +9,6 @@ Experimental XEP-0280: Message Carbons plugin for libpurple (Pidgin, Finch, etc.
 4. `make`
 5. A final `make install` should copy the plugin into your libpurple plugin dir.
 
-_Note_: On Fedora, linking will fail because for some reason `-ljabber` is called `-lxmpp`. Until I figure out how to deal with this the correct way, you'll have to manually replace it.
-
 ### Windows
 Thanks to EionRobb, you can find a compiled dll to put in your plugin folder here: https://eion.robbmob.com/xmpp-carbons/
 
