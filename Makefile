@@ -28,11 +28,11 @@ PKGCFG_L=$(shell $(PKG_CONFIG) --libs glib-2.0) \
 CFLAGS=-std=c11 -Wall -g -Wstrict-overflow -D_XOPEN_SOURCE=700 -D_BSD_SOURCE $(PKGCFG_C) $(HEADERS)
 
 ifneq ("$(wildcard /etc/redhat-release)","")
-	LFLAGS= -ldl -lm $(PKGCFG_L) -lxmpp
+	LJABBER=-lxmpp
 else
-	LFLAGS= -ldl -lm $(PKGCFG_L) -ljabber
+	LJABBER=-ljabber
 endif
-
+LFLAGS= -ldl -lm $(PKGCFG_L) $(LJABBER)
 
 all: $(BDIR)/carbons.so
 
