@@ -38,11 +38,15 @@ all: $(BDIR)/carbons.so
 
 $(BDIR):
 	mkdir -p build
-	
-$(BDIR)/carbons.so: $(SDIR)/carbons.c $(BDIR)
-	$(CC) $(CFLAGS) -fPIC -c $(SDIR)/carbons.c -o $(BDIR)/carbons.o
+
+$(BDIR)/%.o: $(SDIR)/%.c $(BDIR)
+	$(CC) $(CFLAGS) -c $(SDIR)/$*.c -o $@
+
+$(BDIR)/carbons.so: $(BDIR)/carbons.o
 	$(CC) -fPIC -shared $(CFLAGS) $(BDIR)/carbons.o -o $@ $(LFLAGS)
-	
+$(BDIR)/carbons.a: $(BDIR)/carbons.o
+	$(AR) rcs $@ $^
+
 install: $(BDIR)/carbons.so
 	mkdir -p $(PURPLE_PLUGIN_DIR)
 	cp $(BDIR)/carbons.so $(PURPLE_PLUGIN_DIR)/carbons.so
