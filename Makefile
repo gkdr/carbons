@@ -26,6 +26,7 @@ PKGCFG_L=$(shell $(PKG_CONFIG) --libs glib-2.0) \
 		 $(shell $(XML2_CONFIG) --libs) \
 
 CFLAGS=-std=c11 -Wall -g -Wstrict-overflow -D_XOPEN_SOURCE=700 -D_BSD_SOURCE $(PKGCFG_C) $(HEADERS)
+PLUGIN_CPPFLAGS=-DPURPLEPLUGINS
 
 ifneq ("$(wildcard /etc/redhat-release)","")
 	LJABBER=-lxmpp
@@ -40,10 +41,10 @@ $(BDIR):
 	mkdir -p build
 
 $(BDIR)/%.o: $(SDIR)/%.c $(BDIR)
-	$(CC) $(CFLAGS) -c $(SDIR)/$*.c -o $@
+	$(CC) $(CFLAGS) $(PLUGIN_CPPFLAGS )-c $(SDIR)/$*.c -o $@
 
 $(BDIR)/carbons.so: $(BDIR)/carbons.o
-	$(CC) -fPIC -shared $(CFLAGS) $(BDIR)/carbons.o -o $@ $(LFLAGS)
+	$(CC) -fPIC -shared $(CFLAGS) $(PLUGIN_CPPFLAGS) $(BDIR)/carbons.o -o $@ $(LFLAGS)
 $(BDIR)/carbons.a: $(BDIR)/carbons.o
 	$(AR) rcs $@ $^
 
