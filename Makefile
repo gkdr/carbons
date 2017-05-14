@@ -3,8 +3,18 @@ PIDGIN_DIR=./pidgin-2.11.0
 PURPLE_PLUGIN_SRC_DIR=$(PIDGIN_DIR)/libpurple/plugins
 
 CC ?= gcc
+
 PKG_CONFIG ?= pkg-config
+GLIB_CFLAGS ?= $(shell $(PKG_CONFIG) --cflags glib-2.0)
+GLIB_LDFLAGS ?= $(shell $(PKG_CONFIG) --libs glib-2.0)
+
+LIBPURPLE_CFLAGS ?= $(shell $(PKG_CONFIG) --cflags purple)
+LIBPURPLE_LDFLAGS ?= $(shell $(PKG_CONFIG) --cflags purple) \
+		     -L$(shell $(PKG_CONFIG) --variable=plugindir purple)
+
 XML2_CONFIG ?= xml2-config
+XML2_CFLAGS ?= $(shell $(XML2_CONFIG) --cflags)
+XML2_LDFLAGS ?= $(shell $(XML2_CONFIG) --libs)
 
 LDIR=./lib
 BDIR=./build
@@ -13,25 +23,22 @@ HDIR=./headers
 
 HEADERS=-I$(HDIR)/jabber
 
-LIBPURPLE_CFLAGS=$(shell $(PKG_CONFIG) --cflags purple)
-LIBPURPLE_LDFLAGS=$(shell $(PKG_CONFIG) --cflags purple) \
-		    -L$(shell $(PKG_CONFIG) --variable=plugindir purple)
 
-PKGCFG_C=$(shell $(PKG_CONFIG) --cflags glib-2.0) \
-		 $(LIBPURPLE_CFLAGS) \
-		 $(shell $(XML2_CONFIG) --cflags)
+PKGCFG_C=$(GLIB_CFLAGS) \
+	 $(LIBPURPLE_CFLAGS) \
+	 $(XML2_CFLAGS)
 
-PKGCFG_L=$(shell $(PKG_CONFIG) --libs glib-2.0) \
-		 $(LIBPURPLE_LDFLAGS) \
-		 $(shell $(XML2_CONFIG) --libs) \
+PKGCFG_L=$(GLIB_LDFLAGS) \
+	 $(LIBPURPLE_LDFLAGS) \
+	 $(XML2_LDFLAGS)
 
 CFLAGS=-std=c11 -Wall -g -Wstrict-overflow -D_XOPEN_SOURCE=700 -D_BSD_SOURCE $(PKGCFG_C) $(HEADERS)
 PLUGIN_CPPFLAGS=-DPURPLEPLUGINS
 
 ifneq ("$(wildcard /etc/redhat-release)","")
-	LJABBER=-lxmpp
+	LJABBER?=-lxmpp
 else
-	LJABBER=-ljabber
+	LJABBER?=-ljabber
 endif
 LFLAGS= -ldl -lm $(PKGCFG_L) $(LJABBER)
 
