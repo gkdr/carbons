@@ -268,6 +268,13 @@ carbons_plugin_load(PurplePlugin * plugin_p) {
   (void) purple_signal_connect(purple_accounts_get_handle(), "account-signed-on", plugin_p, PURPLE_CALLBACK(carbons_account_connect_cb), NULL);
   (void) purple_signal_connect_priority(purple_plugins_find_with_id("prpl-jabber"), "jabber-receiving-xmlnode", plugin_p, PURPLE_CALLBACK(carbons_xml_received_cb), NULL, PURPLE_PRIORITY_LOWEST + 100);
 
+  GList *active_accounts = purple_accounts_get_all_active();
+  while (active_accounts != NULL) {
+    carbons_account_connect_cb(active_accounts->data);
+    active_accounts = active_accounts->next;
+  }
+  g_list_free(active_accounts);
+
   return TRUE;
 }
 
