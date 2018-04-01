@@ -32,6 +32,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "carbons.h"
 
+#define JABBER_PROTOCOL_ID "prpl-jabber"
+
 #define CARBONS_SETTING_NAME "carbons-enabled"
 
 #define CARBONS_XMLNS "urn:xmpp:carbons:2"
@@ -253,6 +255,10 @@ static PurpleCmdRet carbons_cmd_func(PurpleConversation * conv_p,
 static gboolean
 carbons_plugin_load(PurplePlugin * plugin_p) {
 
+  GList * accs_l_p = (void *) 0;
+  GList * curr_p = (void *) 0;
+  PurpleAccount * acc_p = (void *) 0;
+
   (void) jabber_add_feature(CARBONS_XMLNS, (void *) 0);
 
   carbons_cmd_id = purple_cmd_register("carbons",
@@ -268,12 +274,19 @@ carbons_plugin_load(PurplePlugin * plugin_p) {
   (void) purple_signal_connect(purple_accounts_get_handle(), "account-signed-on", plugin_p, PURPLE_CALLBACK(carbons_account_connect_cb), NULL);
   (void) purple_signal_connect_priority(purple_plugins_find_with_id("prpl-jabber"), "jabber-receiving-xmlnode", plugin_p, PURPLE_CALLBACK(carbons_xml_received_cb), NULL, PURPLE_PRIORITY_LOWEST + 100);
 
-  GList *active_accounts = purple_accounts_get_all_active();
-  while (active_accounts != NULL) {
-    carbons_account_connect_cb(active_accounts->data);
-    active_accounts = active_accounts->next;
+  // manually call init code if there are already accounts connected, e.g. when plugin is loaded manually
+  accs_l_p = purple_accounts_get_all_active();
+  for (curr_p = accs_l_p; curr_p; curr_p = curr_p->next) {
+    acc_p = (PurpleAccount *) curr_p->data;
+    if (purple_account_is_connected(acc_p)) {
+      if (!g_strcmp0(purple_account_get_protocol_id(acc_p), JABBER_PROTOCOL_ID)) {
+        carbons_account_connect_cb(acc_p);
+      }
+    }
   }
-  g_list_free(active_accounts);
+
+cleanup:
+  g_list_free(accs_l_p);
 
   return TRUE;
 }
