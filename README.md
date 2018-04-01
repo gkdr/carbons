@@ -1,15 +1,15 @@
-# carbons 0.1.3
+# carbons 0.1.4
 Experimental XEP-0280: Message Carbons plugin for libpurple (Pidgin, Finch, etc.)
 
 ## Installation
-### Linux, macOS
+### Linux
 1. Install the dependencies (`libpurple-dev`, `libglib2.0-dev`, `libxml2-dev`)
 2. `git clone https://github.com/gkdr/carbons.git`
 3. `cd carbons`
 4. `make`
 5. A final `make install` should copy the plugin into your libpurple plugin dir.
 
-## MacOS variations
+### MacOS
 
 Install dependencies using Homebrew.
 
@@ -43,6 +43,4 @@ To do this, open any chat window from that account and type `/carbons on`. You s
 If you want to deactivate the plugin again, type `/carbons off`.
 
 ## Caveats
-I did this in one afternoon, so if something doesn't work, don't hesitate to open an issue!
-
 Also note that this only synchronizes messages of devices that are online at the same time - for history synchronization, MAM is needed.
