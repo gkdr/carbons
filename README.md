@@ -9,6 +9,28 @@ Experimental XEP-0280: Message Carbons plugin for libpurple (Pidgin, Finch, etc.
 4. `make`
 5. A final `make install` should copy the plugin into your libpurple plugin dir.
 
+## MacOS variations
+
+Install dependencies using Homebrew.
+
+```
+brew install glib libxml2
+```
+
+Get a copy of the libpurple soure (from Pidgin), and prepare it so we can use it
+during the build.
+
+```
+hg clone https://bitbucket.org/pidgin/main pidgin
+cd pidgin
+hg checkout v2.10.12
+./configure $(./configure --help | grep -i -- --disable | awk '{ print $1 }')
+```
+
+```
+make LIBPURPLE_CFLAGS=-I${PWD}/pidgin/libpurple LIBPURPLE_LDFLAGS=/Applications/Adium.app/Contents/Frameworks/libpurple.framework/libpurple LJABBER=
+```
+
 ### Windows
 Thanks to EionRobb, you can find a compiled dll to put in your plugin folder here: https://eion.robbmob.com/xmpp-carbons/
 

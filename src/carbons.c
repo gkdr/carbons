@@ -17,8 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#define PURPLE_PLUGINS
-
 #include <glib.h>
 
 #include <stdlib.h>
@@ -31,6 +29,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "version.h"
 
 #include "iq.h"
+
+#include "carbons.h"
 
 #define CARBONS_SETTING_NAME "carbons-enabled"
 
@@ -283,11 +283,11 @@ static PurplePluginInfo info = {
 
     "core-riba-carbons",
     "XMPP Message Carbons",
-    "0.1.3",
+    CARBONS_VERSION,
 
     "Implements XEP-0280: Message Carbons as a plugin.",
     "This plugin enables a consistent history view across multiple devices which are online at the same time.",
-    "Richard Bayerle <riba@firemail.cc>",
+    CARBONS_AUTHOR,
     "https://github.com/gkdr/carbons",
 
     carbons_plugin_load,
