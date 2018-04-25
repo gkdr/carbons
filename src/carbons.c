@@ -1,6 +1,7 @@
 /*
 carbons - XEP-0280 plugin for libpurple
 Copyright (C) 2017, Richard Bayerle <riba@firemail.cc>
+Copyright (C) 2018, Daniel Gultsch <daniel@gultsch.de>
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -37,6 +38,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define CARBONS_SETTING_NAME "carbons-enabled"
 
 #define CARBONS_XMLNS "urn:xmpp:carbons:2"
+#define OMEMO_XMLNS = "eu.siacs.conversations.axolotl"
 #define XMLNS_ATTR_NAME "xmlns"
 
 #define CARBONS_ENABLE 1
@@ -118,7 +120,8 @@ static void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
     }
 
     body_node_p = xmlnode_get_child(msg_node_p, "body");
-    if (!body_node_p) {
+    encrypted_node_p = xmlnode_get_child_with_namespace(msg_node_p, "encrypted", OMEMO_XMLNS);
+    if (!body_node_p || encrypted_node_p) {
       purple_debug_info("carbons", "Carbon copy of sent message does not contain a body - stripping and passing it through.\n");
       msg_node_p = xmlnode_copy(msg_node_p);
       xmlnode_free(*stanza_pp);
