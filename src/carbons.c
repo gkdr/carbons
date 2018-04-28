@@ -61,12 +61,15 @@ static int carbons_is_valid(PurpleAccount * acc_p, xmlnode * outer_msg_stanza_p)
 }
 
 static void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
-  xmlnode * carbons_node_p = (void *) 0;
-  xmlnode * forwarded_node_p = (void *) 0;
-  xmlnode * msg_node_p = (void *) 0;
-  xmlnode * body_node_p = (void *) 0;
+  xmlnode * carbons_node_p    = (void *) 0;
+  xmlnode * forwarded_node_p  = (void *) 0;
+  xmlnode * msg_node_p        = (void *) 0;
+  xmlnode * body_node_p       = (void *) 0;
+  xmlnode * encrypted_node_p  = (void *) 0;
 
-  char * buddy_name_bare = (void *) 0;
+  int passthrough             = 0;
+
+  char * buddy_name_bare      = (void *) 0;
   PurpleConversation * conv_p = (void *) 0;
 
   carbons_node_p = xmlnode_get_child_with_namespace(*stanza_pp, "received", CARBONS_XMLNS);
@@ -120,6 +123,16 @@ static void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
     body_node_p = xmlnode_get_child(msg_node_p, "body");
     if (!body_node_p) {
       purple_debug_info("carbons", "Carbon copy of sent message does not contain a body - stripping and passing it through.\n");
+      passthrough = 1;
+    }
+
+    encrypted_node_p = xmlnode_get_child(msg_node_p, "encrypted");
+    if (encrypted_node_p) {
+      purple_debug_info("carbons", "Carbon copy of sent message contains a body, but also an additional encrypted element - stripping and passing it through.\n");
+      passthrough = 1;
+    }
+
+    if (passthrough) {
       msg_node_p = xmlnode_copy(msg_node_p);
       xmlnode_free(*stanza_pp);
       *stanza_pp = msg_node_p;
@@ -207,7 +220,7 @@ static void carbons_switch_cb(JabberStream * js_p, const char * from,
 }
 
 static void carbons_switch_do(PurpleConversation * conv_p, int mode) {
-  JabberIq * jiq_p = (void *) 0;
+  JabberIq * jiq_p     = (void *) 0;
   xmlnode * req_node_p = (void *) 0;
 
   mode_global = mode;
@@ -230,7 +243,7 @@ static PurpleCmdRet carbons_cmd_func(PurpleConversation * conv_p,
                                       gchar ** error,
                                       void * data_p) {
 
-  char * msg = (void *) 0;
+  char * msg            = (void *) 0;
   const char * username = purple_account_get_username(purple_conversation_get_account(conv_p));
 
   if (!g_strcmp0(args[0], "on")) {
@@ -255,8 +268,8 @@ static PurpleCmdRet carbons_cmd_func(PurpleConversation * conv_p,
 static gboolean
 carbons_plugin_load(PurplePlugin * plugin_p) {
 
-  GList * accs_l_p = (void *) 0;
-  GList * curr_p = (void *) 0;
+  GList * accs_l_p      = (void *) 0;
+  GList * curr_p        = (void *) 0;
   PurpleAccount * acc_p = (void *) 0;
 
   (void) jabber_add_feature(CARBONS_XMLNS, (void *) 0);
@@ -285,7 +298,6 @@ carbons_plugin_load(PurplePlugin * plugin_p) {
     }
   }
 
-cleanup:
   g_list_free(accs_l_p);
 
   return TRUE;
