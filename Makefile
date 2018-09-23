@@ -32,7 +32,7 @@ PKGCFG_L=$(GLIB_LDFLAGS) \
 	 $(LIBPURPLE_LDFLAGS) \
 	 $(XML2_LDFLAGS)
 
-CFLAGS=-std=c11 -Wall -g -Wstrict-overflow -fPIC -shared -D_XOPEN_SOURCE=700 -D_BSD_SOURCE $(PKGCFG_C) $(HEADERS)
+CFLAGS=-std=c11 -Wall -g -Wstrict-overflow -fPIC -shared -D_XOPEN_SOURCE=700 -D_BSD_SOURCE -D_DEFAULT_SOURCE $(PKGCFG_C) $(HEADERS)
 PLUGIN_CPPFLAGS=-DPURPLE_PLUGINS
 
 ifneq ("$(wildcard /etc/redhat-release)","")
