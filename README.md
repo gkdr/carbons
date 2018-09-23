@@ -1,4 +1,4 @@
-# carbons 0.1.5
+# carbons 0.1.6
 Experimental XEP-0280: Message Carbons plugin for libpurple (Pidgin, Finch, etc.)
 
 ## Installation
