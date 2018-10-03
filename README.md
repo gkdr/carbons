@@ -1,4 +1,4 @@
-# carbons 0.1.6
+# carbons 0.2.0
 Experimental XEP-0280: Message Carbons plugin for libpurple (Pidgin, Finch, etc.)
 
 ## Installation
@@ -38,9 +38,9 @@ If you want to compile it yourself, you can make use of the `Makefile.mingw` als
 For this, you have to set up a build environment as described in https://developer.pidgin.im/wiki/BuildingWinPidgin .
 
 ## Usage
-As some servers might not support message carbons or for some reason disallow enabling them, you have to activate them individually for every account.
-To do this, open any chat window from that account and type `/carbons on`. You should see the result immediately (success or error). It will then enable carbons at every startup.
-If you want to deactivate the plugin again, type `/carbons off`.
+Unlike in previous versions, there is no need to interact with the plugin. On startup, it sends a feature discovery request to the server and automatically enables message carbons if the server lists it among its supported features.
+
+If something is not working right, consult the debug window.
 
 ## Caveats
-Also note that this only synchronizes messages of devices that are online at the same time - for history synchronization, MAM is needed.
+Note that this only synchronizes messages of devices that are online at the same time - for history synchronization, MAM is needed.
