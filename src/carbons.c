@@ -33,8 +33,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define CARBONS_SETTING_NAME "carbons-enabled"
 #define CARBONS_LOG_CATEGORY "carbons"
 
-#define CARBONS_XMLNS   "urn:xmpp:carbons:2"
 #define XMLNS_ATTR_NAME "xmlns"
+#define CARBONS_XMLNS   "urn:xmpp:carbons:2"
+#define DISCO_XMLNS     "http://jabber.org/protocol/disco#info" // see XEP-0030: Service Discovery (https://xmpp.org/extensions/xep-0030.html)
 
 #define CARBONS_ENABLE  1
 #define CARBONS_DISABLE 0
@@ -156,17 +157,14 @@ static void carbons_xml_stripped_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
 }
 
 static void carbons_autoenable_cb(JabberStream * js_p, const char * from,
-                                    JabberIqType type, const char * id,
-                                    xmlnode * packet_p, gpointer data_p) {
-
+                                  JabberIqType type,   const char * id,
+                                  xmlnode * packet_p,  gpointer data_p) {
   const char * accname = purple_account_get_username(purple_connection_get_account(js_p->gc));
 
   if (type == JABBER_IQ_ERROR) {
-    purple_debug_error(CARBONS_LOG_CATEGORY, "Server returned an error when trying to automatically activate carbons for %s.\n", accname);
-    purple_account_set_bool(purple_connection_get_account(js_p->gc), CARBONS_SETTING_NAME, FALSE);
+    purple_debug_error(CARBONS_LOG_CATEGORY, "Server returned an error when trying to activate carbons for %s.\n", accname);
   } else {
-    purple_debug_info(CARBONS_LOG_CATEGORY, "Successfully automatically activated carbons for %s.\n", accname);
-    purple_account_set_bool(purple_connection_get_account(js_p->gc), CARBONS_SETTING_NAME, TRUE);
+    purple_debug_info(CARBONS_LOG_CATEGORY, "Successfully activated carbons for %s.\n", accname);
   }
 }
 
@@ -182,7 +180,56 @@ static void carbons_autoenable(PurpleAccount * acc_p) {
   jabber_iq_set_callback(jiq_p, carbons_autoenable_cb, (void *) 0);
   jabber_iq_send(jiq_p);
 
-  purple_debug_info(CARBONS_LOG_CATEGORY, "Sent startup enable request for %s\n", purple_account_get_username(acc_p));
+  purple_debug_info(CARBONS_LOG_CATEGORY, "Sent enable request for %s.\n", purple_account_get_username(acc_p));
+}
+
+static void carbons_discover_cb(JabberStream * js_p, const char * from,
+                                JabberIqType type,   const char * id,
+                                xmlnode * packet_p,  gpointer data_p) {
+  xmlnode * query_node_p   = (void *) 0;
+  xmlnode * feature_node_p = (void *) 0;
+
+  const char * feature_name = (void *) 0;
+  const char * accname      = purple_account_get_username(purple_connection_get_account(js_p->gc));
+
+  if (type == JABBER_IQ_ERROR) {
+    purple_debug_error(CARBONS_LOG_CATEGORY, "Server returned an error when trying to discover carbons for %s.\n", accname);
+    return;
+  }
+
+  query_node_p = xmlnode_get_child_with_namespace(packet_p, "query", DISCO_XMLNS);
+  if (!query_node_p) {
+    purple_debug_error(CARBONS_LOG_CATEGORY, "No 'query' node in feature discovery reply for %s.\n", accname);
+    return;
+  }
+
+  for (feature_node_p = xmlnode_get_child(query_node_p, "feature"); feature_node_p; feature_node_p = feature_node_p->next) {
+    feature_name = xmlnode_get_attrib(feature_node_p, "var");
+    if (!g_strcmp0(CARBONS_XMLNS, feature_name)) {
+      purple_debug_info(CARBONS_LOG_CATEGORY, "Found carbons in server features, sending enable request for %s.\n", accname);
+      carbons_autoenable(purple_connection_get_account(js_p->gc));
+      return;
+    }
+  }
+
+  purple_debug_info(CARBONS_LOG_CATEGORY, "Server does not support message carbons, therefore doing nothing for %s.\n", accname);
+}
+
+static void carbons_discover(PurpleAccount * acc_p) {
+  JabberIq * jiq_p = (void *) 0;
+  xmlnode * query_node_p = (void *) 0;
+  JabberStream * js_p = purple_connection_get_protocol_data(purple_account_get_connection(acc_p));
+  const char * username = purple_account_get_username(acc_p);
+
+  jiq_p = jabber_iq_new(js_p, JABBER_IQ_GET);
+  xmlnode_set_attrib(jiq_p->node, "to", jabber_get_domain(username));
+  query_node_p = xmlnode_new_child(jiq_p->node, "query");
+  xmlnode_set_namespace(query_node_p, DISCO_XMLNS);
+
+  jabber_iq_set_callback(jiq_p, carbons_discover_cb, (void *) 0);
+  jabber_iq_send(jiq_p);
+
+  purple_debug_info(CARBONS_LOG_CATEGORY, "Sent feature discovery request for %s.\n", purple_account_get_username(acc_p));
 }
 
 static void carbons_account_connect_cb(PurpleAccount * acc_p) {
@@ -190,81 +237,10 @@ static void carbons_account_connect_cb(PurpleAccount * acc_p) {
     return;
   }
 
-  if (!purple_account_get_bool(acc_p, CARBONS_SETTING_NAME, FALSE)) {
-    return;
-  }
+  // "migration code" - remove obsolete setting
+  purple_account_remove_setting(acc_p, CARBONS_SETTING_NAME);
 
-  carbons_autoenable(acc_p);
-}
-
-static void carbons_switch_cb(JabberStream * js_p, const char * from,
-                                    JabberIqType type, const char * id,
-                                    xmlnode * packet_p, gpointer data_p) {
-  PurpleConversation * conv_p = (PurpleConversation *) data_p;
-
-  if (type == JABBER_IQ_ERROR) {
-    purple_conversation_write(conv_p, CARBONS_LOG_CATEGORY, "Server returned an error. See the debug log for more info.", PURPLE_MESSAGE_ERROR | PURPLE_MESSAGE_NO_LOG, time((void *) 0));
-
-    if (mode_global) {
-      purple_account_set_bool(purple_conversation_get_account(conv_p), CARBONS_SETTING_NAME, FALSE);
-    } else {
-      purple_account_set_bool(purple_conversation_get_account(conv_p), CARBONS_SETTING_NAME, TRUE);
-    }
-  } else {
-    purple_conversation_write(conv_p, CARBONS_LOG_CATEGORY, "Success!", PURPLE_MESSAGE_SYSTEM | PURPLE_MESSAGE_NO_LOG, time((void *) 0));
-
-    if (mode_global) {
-      purple_account_set_bool(purple_conversation_get_account(conv_p), CARBONS_SETTING_NAME, TRUE);
-    } else {
-      purple_account_set_bool(purple_conversation_get_account(conv_p), CARBONS_SETTING_NAME, FALSE);
-    }
-  }
-}
-
-static void carbons_switch_do(PurpleConversation * conv_p, int mode) {
-  JabberIq * jiq_p     = (void *) 0;
-  xmlnode * req_node_p = (void *) 0;
-
-  mode_global = mode;
-  const char * mode_str = mode ? "enable" : "disable";
-  JabberStream * js_p = purple_connection_get_protocol_data(purple_account_get_connection(purple_conversation_get_account(conv_p)));
-
-  jiq_p = jabber_iq_new(js_p, JABBER_IQ_SET);
-  req_node_p = xmlnode_new_child(jiq_p->node, mode_str);
-  xmlnode_set_namespace(req_node_p, CARBONS_XMLNS);
-
-  jabber_iq_set_callback(jiq_p, carbons_switch_cb, conv_p);
-  jabber_iq_send(jiq_p);
-
-  purple_debug_info(CARBONS_LOG_CATEGORY, "Sent %s request for %s\n", mode_str, purple_account_get_username(purple_connection_get_account(js_p->gc)));
-}
-
-static PurpleCmdRet carbons_cmd_func(PurpleConversation * conv_p,
-                                      const gchar * cmd,
-                                      gchar ** args,
-                                      gchar ** error,
-                                      void * data_p) {
-
-  char * msg            = (void *) 0;
-  const char * username = purple_account_get_username(purple_conversation_get_account(conv_p));
-
-  if (!g_strcmp0(args[0], "on")) {
-    msg = g_strdup_printf("Turning carbons ON for %s...", username);
-    carbons_switch_do(conv_p, CARBONS_ENABLE);
-  } else if (!g_strcmp0(args[0], "off")) {
-    msg = g_strdup_printf("Turning carbons OFF for %s...", username);
-    carbons_switch_do(conv_p, CARBONS_DISABLE);
-  } else {
-    msg = g_strdup_printf("No such command. Usage: /carbons [on|off]");
-  }
-
-  if (msg) {
-    purple_conversation_write(conv_p, CARBONS_LOG_CATEGORY, msg, PURPLE_MESSAGE_SYSTEM | PURPLE_MESSAGE_NO_LOG, time((void *) 0));
-  }
-
-  g_free(msg);
-
-  return PURPLE_CMD_RET_OK;
+  carbons_discover(acc_p);
 }
 
 static gboolean
@@ -275,16 +251,6 @@ carbons_plugin_load(PurplePlugin * plugin_p) {
   PurpleAccount * acc_p = (void *) 0;
 
   (void) jabber_add_feature(CARBONS_XMLNS, (void *) 0);
-
-  carbons_cmd_id = purple_cmd_register("carbons",
-                                     "w",
-                                     PURPLE_CMD_P_PLUGIN,
-                                     PURPLE_CMD_FLAG_IM | PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY | PURPLE_CMD_FLAG_ALLOW_WRONG_ARGS,
-                                     "prpl-jabber",
-                                     carbons_cmd_func,
-                                     "carbons &lt;on|off&gt;:  "
-                                     "Turns Message Carbons on or off for the calling account.",
-                                     (void *) 0);
 
   (void) purple_signal_connect(purple_accounts_get_handle(), "account-signed-on", plugin_p, PURPLE_CALLBACK(carbons_account_connect_cb), NULL);
   (void) purple_signal_connect_priority(purple_plugins_find_with_id("prpl-jabber"), "jabber-receiving-xmlnode", plugin_p, PURPLE_CALLBACK(carbons_xml_received_cb), NULL, PURPLE_PRIORITY_LOWEST + 100);
