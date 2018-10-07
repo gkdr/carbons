@@ -130,7 +130,7 @@ static void carbons_xml_stripped_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
   char * buddy_name_bare      = (void *) 0;
   PurpleConversation * conv_p = (void *) 0;
 
-  if (g_strcmp0((*stanza_pp)->name, "message")) {
+  if (*stanza_pp == NULL || g_strcmp0((*stanza_pp)->name, "message") != 0) {
     return;
   }  
 
