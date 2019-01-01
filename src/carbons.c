@@ -33,9 +33,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define CARBONS_SETTING_NAME "carbons-enabled"
 #define CARBONS_LOG_CATEGORY "carbons"
 
-#define CARBONS_XMLNS   "urn:xmpp:carbons:2"
+#define CARBONS_XMLNS   "urn:xmpp:carbons:2" // https://xmpp.org/extensions/xep-0280.html
 #define DISCO_XMLNS     "http://jabber.org/protocol/disco#info" // see XEP-0030: Service Discovery (https://xmpp.org/extensions/xep-0030.html)
 
+/**
+ * From section 11, security considerations:
+ * 'Any forwarded copies received by a Carbons-enabled client MUST be from that user's bare JID'
+*/
 static int carbons_is_valid(PurpleAccount * acc_p, xmlnode * outer_msg_stanza_p) {
   char ** split;
 
