@@ -212,10 +212,8 @@ static void carbons_discover(PurpleAccount * acc_p) {
   JabberIq * jiq_p = (void *) 0;
   xmlnode * query_node_p = (void *) 0;
   JabberStream * js_p = purple_connection_get_protocol_data(purple_account_get_connection(acc_p));
-  const char * username = purple_account_get_username(acc_p);
-
   jiq_p = jabber_iq_new(js_p, JABBER_IQ_GET);
-  xmlnode_set_attrib(jiq_p->node, "to", jabber_get_domain(username));
+  xmlnode_set_attrib(jiq_p->node, "to", js_p->user->domain);
   query_node_p = xmlnode_new_child(jiq_p->node, "query");
   xmlnode_set_namespace(query_node_p, DISCO_XMLNS);
 
