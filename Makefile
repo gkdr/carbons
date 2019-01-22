@@ -35,6 +35,7 @@ PKGCFG_L=$(GLIB_LDFLAGS) \
 
 CFLAGS=-std=c11 -Wall -g -Wstrict-overflow -D_XOPEN_SOURCE=700 -D_BSD_SOURCE -D_DEFAULT_SOURCE $(PKGCFG_C) $(HEADERS)
 CFLAGS_C= $(CFLAGS) -fPIC -shared
+CFLAGS_T= $(CFLAGS) --coverage -O0
 PLUGIN_CPPFLAGS=-DPURPLE_PLUGINS
 
 ifneq ("$(wildcard /etc/redhat-release)","")
@@ -69,9 +70,14 @@ install: $(BDIR)/carbons.so
 
 .PHONY: test
 test: $(TDIR)/test_carbons.c $(BDIR)
-	$(CC) $(CFLAGS) -c $< -o $(BDIR)/$@.o
-	$(CC) $(CFLAGS) $(PURPLE_DIR)/libjabber.so.0 $(BDIR)/$@.o -o $(BDIR)/$@ $(LFLAGS_T)
+	$(CC) $(CFLAGS_T) -c $< -o $(BDIR)/$@.o
+	$(CC) $(CFLAGS_T) $(PURPLE_DIR)/libjabber.so.0 $(BDIR)/$@.o -o $(BDIR)/$@ $(LFLAGS_T)
 	-$(BDIR)/$@
+
+.PHONY: coverage
+coverage: test
+	gcovr -r . --html --html-details -o build/coverage.html
+	gcovr -r . -s
 
 .PHONY: clean
 clean:
