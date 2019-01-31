@@ -1,0 +1,9 @@
+container:
+  image: gcc:8.2.0
+
+install_task:
+  install_script: apt-get install -y libpurple-dev libglib2.0-dev libxml2-dev
+
+test_task:
+  depends_on: install
+  test_script: make test
