@@ -2,7 +2,10 @@ container:
   image: gcc:8.2.0
 
 install_task:
-  install_script: apt-get install --fix-broken && apt-get update && apt-get install -y libpurple-dev libglib2.0-dev libxml2-dev
+  install_script:
+    - apt-get install --fix-broken
+    - apt-get update
+    - apt-get install -y pidgin-dev libglib2.0-dev libxml2-dev libcmocka0
 
 test_task:
   depends_on: install
