@@ -23,6 +23,14 @@ PurpleConnection * __wrap_purple_account_get_connection(PurpleAccount * acc_p) {
     return connection_p;
 }
 
+PurpleAccount * __wrap_purple_connection_get_account(const PurpleConnection * gc_p) {
+    PurpleAccount * account_p;
+
+    account_p = mock_ptr_type(PurpleAccount *);
+
+    return account_p;
+}
+
 void * __wrap_purple_connection_get_protocol_data(const PurpleConnection * connection_p) {
     JabberStream * js_p;
 
@@ -94,32 +102,106 @@ static void test_carbons_discover(void ** state) {
     free(js_p);
 }
 
-static void test_carbons_autoenable(void ** state) {
+static void test_carbons_discover_cb_success(void ** state) {
     (void) state;
 
     const char * test_jid = "me-testing@test.org/resource";
 
-    will_return(__wrap_purple_account_get_connection, NULL);
+    // example from docs
+    const char * reply = "<iq xmlns='jabber:client' from='montague.example' id='info1' "
+                             "to='romeo@montague.example/garden' type='result'>"
+                            "<query xmlns='http://jabber.org/protocol/disco#info'>"
+                                "<feature var='urn:xmpp:carbons:2'/>"
+                            "</query>"
+                          "</iq>";
+
+    xmlnode * reply_node_p = xmlnode_from_str(reply, -1);
 
     JabberStream * js_p = malloc(sizeof (JabberStream));
     js_p->next_id = 1;
     js_p->user = jabber_id_new(test_jid);
-    will_return(__wrap_purple_connection_get_protocol_data, js_p);
 
+    will_return(__wrap_purple_connection_get_account, NULL);
     will_return(__wrap_purple_account_get_username, test_jid);
 
-
     expect_value(__wrap_jabber_iq_send, iq_p->type, JABBER_IQ_SET);
-    expect_value(__wrap_jabber_iq_send, iq_p->callback, carbons_autoenable_cb);
+    expect_value(__wrap_jabber_iq_send, iq_p->callback, carbons_enable_cb);
     expect_not_value(__wrap_jabber_iq_send, enable_node_p, NULL);
 
     // not set here
     expect_value(__wrap_jabber_iq_send, to, NULL);
     expect_value(__wrap_jabber_iq_send, query_node_p, NULL);
 
-    carbons_autoenable(NULL);
+    carbons_discover_cb(js_p, "from", JABBER_IQ_RESULT, "id", reply_node_p, NULL);
 
     free(js_p);
+}
+
+static void test_carbons_discover_cb_error(void ** state) {
+    (void) state;
+
+    const char * test_jid = "me-testing@test.org/resource";
+
+    // example from docs
+    const char * reply = "<iq xmlns='jabber:client' from='montague.example' id='info1' "
+                             "to='romeo@montague.example/garden' type='result'>"
+                            "<query xmlns='http://jabber.org/protocol/disco#info'>"
+                                "<feature var='urn:xmpp:carbons:2'/>"
+                            "</query>"
+                          "</iq>";
+
+    xmlnode * reply_node_p = xmlnode_from_str(reply, -1);
+
+    JabberStream * js_p = malloc(sizeof (JabberStream));
+    js_p->next_id = 1;
+    js_p->user = jabber_id_new(test_jid);
+
+    will_return(__wrap_purple_connection_get_account, NULL);
+    will_return(__wrap_purple_account_get_username, test_jid);
+
+    //TODO: check function interface for "not called"
+    // not set here
+    // expect_value(__wrap_jabber_iq_send, iq_p->type, NULL);
+    // expect_value(__wrap_jabber_iq_send, iq_p->callback, NULL);
+    // expect_value(__wrap_jabber_iq_send, enable_node_p, NULL);
+    // expect_value(__wrap_jabber_iq_send, to, NULL);
+    // expect_value(__wrap_jabber_iq_send, query_node_p, NULL);
+
+    carbons_discover_cb(js_p, "from", JABBER_IQ_ERROR, "id", reply_node_p, NULL);
+
+    free(js_p);
+}
+
+static void test_carbons_xml_received_cb_received_success(void ** state) {
+    (void) state;
+
+    const char * received_carbon_copy = 
+    "<message xmlns='jabber:client' "
+             "from='romeo@montague.example' "
+             "to='romeo@montague.example/home' "
+             "type='chat'>"
+        "<received xmlns='urn:xmpp:carbons:2'>"
+            "<forwarded xmlns='urn:xmpp:forward:0'>"
+                "<message xmlns='jabber:client' "
+                         "from='juliet@capulet.example/balcony' "
+                         "to='romeo@montague.example/garden' "
+                         "type='chat'>"
+                    "<body>What man art thou that, thus bescreen'd in night, so stumblest on my counsel?</body>"
+                    "<thread>0e3141cd80894871a68e6fe6b1ec56fa</thread>"
+                "</message>"
+            "</forwarded>"
+        "</received>"
+    "</message>";
+
+    xmlnode * received_carbons_node_p = xmlnode_from_str(received_carbon_copy, -1);
+
+    will_return(__wrap_purple_connection_get_account, NULL);
+    will_return(__wrap_purple_account_get_username, "romeo@montague.example");
+
+    carbons_xml_received_cb(NULL, &received_carbons_node_p);
+
+    assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "from"), "juliet@capulet.example/balcony");
+    assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "to"), "romeo@montague.example/garden");
 }
 
 int main(void) {
@@ -127,7 +209,9 @@ int main(void) {
         cmocka_unit_test(test_carbons_is_valid_valid),
         cmocka_unit_test(test_carbons_is_valid_invalid),
         cmocka_unit_test(test_carbons_discover),
-        cmocka_unit_test(test_carbons_autoenable)
+        cmocka_unit_test(test_carbons_discover_cb_success),
+        cmocka_unit_test(test_carbons_discover_cb_error),
+        cmocka_unit_test(test_carbons_xml_received_cb_received_success)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

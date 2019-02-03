@@ -60,6 +60,10 @@ static void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
   xmlnode * forwarded_node_p  = (void *) 0;
   xmlnode * msg_node_p        = (void *) 0;
 
+  if (!stanza_pp || !(*stanza_pp)) {
+    return;
+  }
+
   carbons_node_p = xmlnode_get_child_with_namespace(*stanza_pp, "received", CARBONS_XMLNS);
   if (carbons_node_p) {
     purple_debug_info(CARBONS_LOG_CATEGORY, "Received carbon copy of a received message.\n");
@@ -153,7 +157,7 @@ static void carbons_xml_stripped_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
   }
 }
 
-static void carbons_autoenable_cb(JabberStream * js_p, const char * from,
+static void carbons_enable_cb(JabberStream * js_p, const char * from,
                                   JabberIqType type,   const char * id,
                                   xmlnode * packet_p,  gpointer data_p) {
   const char * accname = purple_account_get_username(purple_connection_get_account(js_p->gc));
@@ -165,26 +169,13 @@ static void carbons_autoenable_cb(JabberStream * js_p, const char * from,
   }
 }
 
-static void carbons_autoenable(PurpleAccount * acc_p) {
-  JabberIq * jiq_p = (void *) 0;
-  xmlnode * req_node_p = (void *) 0;
-  JabberStream * js_p = purple_connection_get_protocol_data(purple_account_get_connection(acc_p));
-
-  jiq_p = jabber_iq_new(js_p, JABBER_IQ_SET);
-  req_node_p = xmlnode_new_child(jiq_p->node, "enable");
-  xmlnode_set_namespace(req_node_p, CARBONS_XMLNS);
-
-  jabber_iq_set_callback(jiq_p, carbons_autoenable_cb, (void *) 0);
-  jabber_iq_send(jiq_p);
-
-  purple_debug_info(CARBONS_LOG_CATEGORY, "Sent enable request for %s.\n", purple_account_get_username(acc_p));
-}
-
 static void carbons_discover_cb(JabberStream * js_p, const char * from,
                                 JabberIqType type,   const char * id,
                                 xmlnode * packet_p,  gpointer data_p) {
-  xmlnode * query_node_p   = (void *) 0;
-  xmlnode * feature_node_p = (void *) 0;
+  xmlnode * query_node_p = (void *) 0;
+  xmlnode * child_node_p = (void *) 0;
+  JabberIq * jiq_p       = (void *) 0;
+  xmlnode * req_node_p   = (void *) 0;
 
   const char * feature_name = (void *) 0;
   const char * accname      = purple_account_get_username(purple_connection_get_account(js_p->gc));
@@ -200,11 +191,23 @@ static void carbons_discover_cb(JabberStream * js_p, const char * from,
     return;
   }
 
-  for (feature_node_p = xmlnode_get_child(query_node_p, "feature"); feature_node_p; feature_node_p = feature_node_p->next) {
-    feature_name = xmlnode_get_attrib(feature_node_p, "var");
+  for (child_node_p = query_node_p->child; child_node_p; child_node_p = child_node_p->next) {
+    if (g_strcmp0(child_node_p->name, "feature")) {
+      continue;
+    }
+
+    feature_name = xmlnode_get_attrib(child_node_p, "var");
     if (!g_strcmp0(CARBONS_XMLNS, feature_name)) {
       purple_debug_info(CARBONS_LOG_CATEGORY, "Found carbons in server features, sending enable request for %s.\n", accname);
-      carbons_autoenable(purple_connection_get_account(js_p->gc));
+
+      jiq_p = jabber_iq_new(js_p, JABBER_IQ_SET);
+      req_node_p = xmlnode_new_child(jiq_p->node, "enable");
+      xmlnode_set_namespace(req_node_p, CARBONS_XMLNS);
+
+      jabber_iq_set_callback(jiq_p, carbons_enable_cb, (void *) 0);
+      jabber_iq_send(jiq_p);
+
+      purple_debug_info(CARBONS_LOG_CATEGORY, "Sent enable request for %s.\n", accname);
       return;
     }
   }
