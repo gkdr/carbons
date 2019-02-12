@@ -35,7 +35,7 @@ PKGCFG_L=$(GLIB_LDFLAGS) \
 
 CFLAGS=-std=c11 -Wall -g -Wstrict-overflow -D_XOPEN_SOURCE=700 -D_BSD_SOURCE -D_DEFAULT_SOURCE $(PKGCFG_C) $(HEADERS)
 CFLAGS_C= $(CFLAGS) -fPIC -shared
-CFLAGS_T= $(CFLAGS) --coverage -O0
+CFLAGS_T= $(CFLAGS) -O0
 PLUGIN_CPPFLAGS=-DPURPLE_PLUGINS
 
 ifneq ("$(wildcard /etc/redhat-release)","")
@@ -48,6 +48,7 @@ LFLAGS= -ldl -lm $(PKGCFG_L) $(LJABBER)
 LFLAGS_T= $(LFLAGS) -lpurple -lcmocka -Wl,-rpath,$(PURPLE_DIR) \
 	-Wl,--wrap=purple_account_get_username \
 	-Wl,--wrap=purple_account_get_connection \
+	-Wl,--wrap=purple_debug_error \
 	-Wl,--wrap=purple_connection_get_account \
 	-Wl,--wrap=purple_connection_get_protocol_data \
 	-Wl,--wrap=jabber_iq_send
@@ -72,7 +73,8 @@ install: $(BDIR)/carbons.so
 .PHONY: test
 test: $(TDIR)/test_carbons.c $(BDIR)
 	$(CC) $(CFLAGS_T) -c $< -o $(BDIR)/$@.o
-	$(CC) $(CFLAGS_T) $(PURPLE_DIR)/libjabber.so.0 $(BDIR)/$@.o -o $(BDIR)/$@ $(LFLAGS_T)
+	$(CC) $(CFLAGS_T) --coverage  -c $(SDIR)/carbons.c -o $(BDIR)/carbons_coverage.o
+	$(CC) $(CFLAGS_T) --coverage $(PURPLE_DIR)/libjabber.so.0 $(BDIR)/$@.o $(BDIR)/carbons_coverage.o -o $(BDIR)/$@ $(LFLAGS_T)
 	-$(BDIR)/$@
 
 .PHONY: coverage

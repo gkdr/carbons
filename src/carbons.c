@@ -40,7 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  * From section 11, security considerations:
  * 'Any forwarded copies received by a Carbons-enabled client MUST be from that user's bare JID'
 */
-static int carbons_is_valid(PurpleAccount * acc_p, xmlnode * outer_msg_stanza_p) {
+int carbons_is_valid(PurpleAccount * acc_p, xmlnode * outer_msg_stanza_p) {
   char ** split;
 
   split = g_strsplit(purple_account_get_username(acc_p), "/", 2);
@@ -55,7 +55,7 @@ static int carbons_is_valid(PurpleAccount * acc_p, xmlnode * outer_msg_stanza_p)
   }
 }
 
-static void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
+void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
   xmlnode * carbons_node_p    = (void *) 0;
   xmlnode * forwarded_node_p  = (void *) 0;
   xmlnode * msg_node_p        = (void *) 0;
@@ -125,7 +125,7 @@ static void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
 
 // libpurple doesn't know what to do with incoming messages addressed to someone else, so they need to be written to the conversation manually
 // checks for presence of a <sent /> node that was inserted in the initial handler
-static void carbons_xml_stripped_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
+void carbons_xml_stripped_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
   xmlnode * carbons_node_p    = (void *) 0;
   xmlnode * body_node_p       = (void *) 0;
   char * buddy_name_bare      = (void *) 0;
@@ -157,7 +157,7 @@ static void carbons_xml_stripped_cb(PurpleConnection * gc_p, xmlnode ** stanza_p
   }
 }
 
-static void carbons_enable_cb(JabberStream * js_p, const char * from,
+void carbons_enable_cb(JabberStream * js_p, const char * from,
                                   JabberIqType type,   const char * id,
                                   xmlnode * packet_p,  gpointer data_p) {
   const char * accname = purple_account_get_username(purple_connection_get_account(js_p->gc));
@@ -169,7 +169,7 @@ static void carbons_enable_cb(JabberStream * js_p, const char * from,
   }
 }
 
-static void carbons_discover_cb(JabberStream * js_p, const char * from,
+void carbons_discover_cb(JabberStream * js_p, const char * from,
                                 JabberIqType type,   const char * id,
                                 xmlnode * packet_p,  gpointer data_p) {
   xmlnode * query_node_p = (void *) 0;
@@ -215,7 +215,7 @@ static void carbons_discover_cb(JabberStream * js_p, const char * from,
   purple_debug_info(CARBONS_LOG_CATEGORY, "Server does not support message carbons, therefore doing nothing for %s.\n", accname);
 }
 
-static void carbons_discover(PurpleAccount * acc_p) {
+void carbons_discover(PurpleAccount * acc_p) {
   JabberIq * jiq_p = (void *) 0;
   xmlnode * query_node_p = (void *) 0;
   JabberStream * js_p = purple_connection_get_protocol_data(purple_account_get_connection(acc_p));

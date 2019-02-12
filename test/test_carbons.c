@@ -5,7 +5,10 @@
 
 #include "jabber.h"
 
-#include "../src/carbons.c"
+#include "../src/carbons.h"
+
+#define CARBONS_XMLNS   "urn:xmpp:carbons:2"
+#define DISCO_XMLNS     "http://jabber.org/protocol/disco#info"
 
 char * __wrap_purple_account_get_username(PurpleAccount * acc_p) {
     char * username;
@@ -53,6 +56,10 @@ void __wrap_jabber_iq_send(JabberIq * iq_p) {
     check_expected(enable_node_p);
 }
 
+void __wrap_purple_debug_error(const char * category, const char * format, ...) {
+    function_called();
+}
+
 static void test_carbons_is_valid_valid(void ** state) {
     (void) state;
 
@@ -88,7 +95,6 @@ static void test_carbons_discover(void ** state) {
 
     will_return(__wrap_purple_account_get_username, test_jid);
 
-
     expect_value(__wrap_jabber_iq_send, iq_p->type, JABBER_IQ_GET);
     expect_value(__wrap_jabber_iq_send, iq_p->callback, carbons_discover_cb);
     expect_string(__wrap_jabber_iq_send, to, test_domain);
@@ -102,6 +108,9 @@ static void test_carbons_discover(void ** state) {
     free(js_p);
 }
 
+/**
+ * Shuould send well-formed "enable" request if feature is contained in discovery response.
+ */
 static void test_carbons_discover_cb_success(void ** state) {
     (void) state;
 
@@ -137,37 +146,22 @@ static void test_carbons_discover_cb_success(void ** state) {
     free(js_p);
 }
 
+/**
+ * Should abort when receiving an error reply.
+ */
 static void test_carbons_discover_cb_error(void ** state) {
     (void) state;
 
     const char * test_jid = "me-testing@test.org/resource";
 
-    // example from docs
-    const char * reply = "<iq xmlns='jabber:client' from='montague.example' id='info1' "
-                             "to='romeo@montague.example/garden' type='result'>"
-                            "<query xmlns='http://jabber.org/protocol/disco#info'>"
-                                "<feature var='urn:xmpp:carbons:2'/>"
-                            "</query>"
-                          "</iq>";
-
-    xmlnode * reply_node_p = xmlnode_from_str(reply, -1);
-
     JabberStream * js_p = malloc(sizeof (JabberStream));
-    js_p->next_id = 1;
-    js_p->user = jabber_id_new(test_jid);
 
     will_return(__wrap_purple_connection_get_account, NULL);
     will_return(__wrap_purple_account_get_username, test_jid);
 
-    //TODO: check function interface for "not called"
-    // not set here
-    // expect_value(__wrap_jabber_iq_send, iq_p->type, NULL);
-    // expect_value(__wrap_jabber_iq_send, iq_p->callback, NULL);
-    // expect_value(__wrap_jabber_iq_send, enable_node_p, NULL);
-    // expect_value(__wrap_jabber_iq_send, to, NULL);
-    // expect_value(__wrap_jabber_iq_send, query_node_p, NULL);
+    expect_function_call(__wrap_purple_debug_error);
 
-    carbons_discover_cb(js_p, "from", JABBER_IQ_ERROR, "id", reply_node_p, NULL);
+    carbons_discover_cb(js_p, "from", JABBER_IQ_ERROR, "id", NULL, NULL);
 
     free(js_p);
 }
