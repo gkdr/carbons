@@ -114,7 +114,7 @@ static void test_carbons_discover(void ** state) {
 static void test_carbons_discover_cb_success(void ** state) {
     (void) state;
 
-    const char * test_jid = "me-testing@test.org/resource";
+    const char * test_jid = "romeo@montague.example/garden";
 
     // example from docs
     const char * reply = "<iq xmlns='jabber:client' from='montague.example' id='info1' "
@@ -152,7 +152,7 @@ static void test_carbons_discover_cb_success(void ** state) {
 static void test_carbons_discover_cb_error(void ** state) {
     (void) state;
 
-    const char * test_jid = "me-testing@test.org/resource";
+    const char * test_jid = "romeo@montague.example/garden";
 
     JabberStream * js_p = malloc(sizeof (JabberStream));
 
@@ -164,6 +164,29 @@ static void test_carbons_discover_cb_error(void ** state) {
     carbons_discover_cb(js_p, "from", JABBER_IQ_ERROR, "id", NULL, NULL);
 
     free(js_p);
+}
+
+static void test_carbons_discover_cb_empty_reply(void ** state) {
+    (void) state;
+
+    const char * own_jid = "romeo@montague.example/garden";
+
+    const char * reply = "<iq xmlns='jabber:client' from='montague.example' id='info1' "
+                             "to='romeo@montague.example/garden' type='result'>"
+                          "</iq>";
+    xmlnode * reply_node_p = xmlnode_from_str(reply, -1);
+
+    JabberStream * js_p = malloc(sizeof (JabberStream));
+
+    will_return(__wrap_purple_connection_get_account, NULL);
+    will_return(__wrap_purple_account_get_username, own_jid);
+
+    expect_function_call(__wrap_purple_debug_error);
+
+    carbons_discover_cb(js_p, "montague.example", JABBER_IQ_RESULT, "id", reply_node_p, NULL);
+
+    free(js_p);
+
 }
 
 static void test_carbons_xml_received_cb_received_success(void ** state) {
@@ -205,6 +228,7 @@ int main(void) {
         cmocka_unit_test(test_carbons_discover),
         cmocka_unit_test(test_carbons_discover_cb_success),
         cmocka_unit_test(test_carbons_discover_cb_error),
+        cmocka_unit_test(test_carbons_discover_cb_empty_reply),
         cmocka_unit_test(test_carbons_xml_received_cb_received_success)
     };
 
