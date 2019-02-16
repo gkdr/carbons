@@ -123,7 +123,6 @@ static void test_carbons_discover_cb_success(void ** state) {
                                 "<feature var='urn:xmpp:carbons:2'/>"
                             "</query>"
                           "</iq>";
-
     xmlnode * reply_node_p = xmlnode_from_str(reply, -1);
 
     JabberStream * js_p = malloc(sizeof (JabberStream));
@@ -132,6 +131,57 @@ static void test_carbons_discover_cb_success(void ** state) {
 
     will_return(__wrap_purple_connection_get_account, NULL);
     will_return(__wrap_purple_account_get_username, test_jid);
+
+    expect_value(__wrap_jabber_iq_send, iq_p->type, JABBER_IQ_SET);
+    expect_value(__wrap_jabber_iq_send, iq_p->callback, carbons_enable_cb);
+    expect_not_value(__wrap_jabber_iq_send, enable_node_p, NULL);
+
+    // not set here
+    expect_value(__wrap_jabber_iq_send, to, NULL);
+    expect_value(__wrap_jabber_iq_send, query_node_p, NULL);
+
+    carbons_discover_cb(js_p, "from", JABBER_IQ_RESULT, "id", reply_node_p, NULL);
+
+    free(js_p);
+}
+
+/**
+ * Success case with a real world example (reply received from Prosody 0.11.0).
+ */
+static void test_carbons_discover_cb_real_world_reply(void ** state) {
+    (void) state;
+
+    const char * own_jid = "b@localhost/pidgin";
+    const char * reply = "<iq id='purpleece2bdb2' type='result' to='b@localhost/pidgin' from='localhost'>"
+                            "<query xmlns='http://jabber.org/protocol/disco#info'>"
+                                "<identity type='im' name='Prosody' category='server'/>"
+                                "<identity type='pep' name='Prosody' category='pubsub'/>"
+                                "<feature var='urn:xmpp:blocking'/>"
+                                "<feature var='urn:xmpp:carbons:2'/>"
+                                "<feature var='vcard-temp'/>"
+                                "<feature var='http://jabber.org/protocol/commands'/>"
+                                "<feature var='jabber:iq:private'/>"
+                                "<feature var='jabber:iq:register'/>"
+                                "<feature var='urn:xmpp:ping'/>"
+                                "<feature var='http://jabber.org/protocol/disco#info'/>"
+                                "<feature var='http://jabber.org/protocol/disco#items'/>"
+                                "<feature var='http://jabber.org/protocol/pubsub#publish'/>"
+                                "<feature var='jabber:iq:version'/>"
+                                "<feature var='urn:xmpp:time'/>"
+                                "<feature var='jabber:iq:time'/>"
+                                "<feature var='msgoffline'/>"
+                                "<feature var='jabber:iq:last'/>"
+                                "<feature var='jabber:iq:roster'/>"
+                            "</query>"
+                        "</iq>";
+    xmlnode * reply_node_p = xmlnode_from_str(reply, -1);
+
+    JabberStream * js_p = malloc(sizeof (JabberStream));
+    js_p->next_id = 1;
+    js_p->user = jabber_id_new(own_jid);
+
+    will_return(__wrap_purple_connection_get_account, NULL);
+    will_return(__wrap_purple_account_get_username, own_jid);
 
     expect_value(__wrap_jabber_iq_send, iq_p->type, JABBER_IQ_SET);
     expect_value(__wrap_jabber_iq_send, iq_p->callback, carbons_enable_cb);
@@ -227,6 +277,7 @@ int main(void) {
         cmocka_unit_test(test_carbons_is_valid_invalid),
         cmocka_unit_test(test_carbons_discover),
         cmocka_unit_test(test_carbons_discover_cb_success),
+        cmocka_unit_test(test_carbons_discover_cb_real_world_reply),
         cmocka_unit_test(test_carbons_discover_cb_error),
         cmocka_unit_test(test_carbons_discover_cb_empty_reply),
         cmocka_unit_test(test_carbons_xml_received_cb_received_success)
