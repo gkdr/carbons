@@ -382,6 +382,29 @@ static void test_carbons_discover_cb_empty_reply(void ** state) {
 
 }
 
+/**
+ * Checks that the callback does not crash when the xmlnode ** is null.
+ * Some plugins do that to prevent sending.
+ */
+static void test_carbons_xml_received_cb_nullptr(void ** state) {
+    (void) state;
+
+    carbons_xml_received_cb(NULL, NULL);
+}
+
+/**
+ * Checks that the callback does not crash when the given xmlnode * is null.
+ */
+static void test_carbons_xml_received_cb_null(void ** state) {
+    (void) state;
+
+    xmlnode * node_p = NULL;
+    carbons_xml_received_cb(NULL, &node_p);
+}
+
+/**
+ * Default case for a received carbon copy of a received message.
+ */
 static void test_carbons_xml_received_cb_received_success(void ** state) {
     (void) state;
 
@@ -426,6 +449,8 @@ int main(void) {
         cmocka_unit_test(test_carbons_discover_cb_no_carbons),
         cmocka_unit_test(test_carbons_discover_cb_error),
         cmocka_unit_test(test_carbons_discover_cb_empty_reply),
+        cmocka_unit_test(test_carbons_xml_received_cb_nullptr),
+        cmocka_unit_test(test_carbons_xml_received_cb_null),
         cmocka_unit_test(test_carbons_xml_received_cb_received_success)
     };
 
