@@ -49,6 +49,7 @@ LFLAGS_T= $(LFLAGS) -lpurple -lcmocka -Wl,-rpath,$(PURPLE_DIR) \
 	-Wl,--wrap=purple_account_get_username \
 	-Wl,--wrap=purple_account_get_connection \
 	-Wl,--wrap=purple_debug_error \
+	-Wl,--wrap=purple_debug_warning \
 	-Wl,--wrap=purple_connection_get_account \
 	-Wl,--wrap=purple_connection_get_protocol_data \
 	-Wl,--wrap=jabber_iq_send

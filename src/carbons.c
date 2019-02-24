@@ -40,7 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  * From section 11, security considerations:
  * 'Any forwarded copies received by a Carbons-enabled client MUST be from that user's bare JID'
 */
-int carbons_is_valid(PurpleAccount * acc_p, xmlnode * outer_msg_stanza_p) {
+static int carbons_is_valid(PurpleAccount * acc_p, xmlnode * outer_msg_stanza_p) {
   char ** split;
 
   split = g_strsplit(purple_account_get_username(acc_p), "/", 2);

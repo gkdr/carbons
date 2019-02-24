@@ -60,24 +60,8 @@ void __wrap_purple_debug_error(const char * category, const char * format, ...) 
     function_called();
 }
 
-static void test_carbons_is_valid_valid(void ** state) {
-    (void) state;
-
-    xmlnode * test_outer_msg_stanza_p = xmlnode_from_str("<message from='me@test.org' />", -1);
-
-    will_return(__wrap_purple_account_get_username, "me@test.org");
-
-    assert_int_equal(carbons_is_valid(NULL, test_outer_msg_stanza_p), 1);
-}
-
-static void test_carbons_is_valid_invalid(void ** state) {
-    (void) state;
-
-    xmlnode * test_outer_msg_stanza_p = xmlnode_from_str("<message from='evilguy@test.org' />", -1);
-
-    will_return(__wrap_purple_account_get_username, "me@test.org");
-
-    assert_int_equal(carbons_is_valid(NULL, test_outer_msg_stanza_p), 0);
+void __wrap_purple_debug_warning(const char * category, const char * format, ...) {
+    function_called();
 }
 
 static void test_carbons_discover(void ** state) {
@@ -383,8 +367,7 @@ static void test_carbons_discover_cb_empty_reply(void ** state) {
 }
 
 /**
- * Checks that the callback does not crash when the xmlnode ** is null.
- * Some plugins do that to prevent sending.
+ * Do nothing (and especially not crash) when the xmlnode ** is null. Some plugins do this.
  */
 static void test_carbons_xml_received_cb_nullptr(void ** state) {
     (void) state;
@@ -403,29 +386,102 @@ static void test_carbons_xml_received_cb_null(void ** state) {
 }
 
 /**
- * Default case for a received carbon copy of a received message.
+ * 'Reject' carbons messages sent by someone other than the own, bare JID.
+ * I.e., stop processing it and let libpurple ignore it.
+ */
+static void test_carbons_xml_received_cb_invalid_sender_received(void ** state) {
+    (void) state;
+
+    const char * received_carbon_copy = 
+        "<message xmlns='jabber:client' "
+                "from='badguy@montague.example' "
+                "to='romeo@montague.example/home' "
+                "type='chat'>"
+            "<received xmlns='urn:xmpp:carbons:2'>"
+                "<forwarded xmlns='urn:xmpp:forward:0'>"
+                    "<message xmlns='jabber:client' "
+                            "from='juliet@capulet.example/balcony' "
+                            "to='romeo@montague.example/garden' "
+                            "type='chat'>"
+                        "<body>What man art thou that, thus bescreen'd in night, so stumblest on my counsel?</body>"
+                        "<thread>0e3141cd80894871a68e6fe6b1ec56fa</thread>"
+                    "</message>"
+                "</forwarded>"
+            "</received>"
+        "</message>";
+    xmlnode * received_carbons_node_p = xmlnode_from_str(received_carbon_copy, -1);
+
+    will_return(__wrap_purple_connection_get_account, NULL);
+    will_return(__wrap_purple_account_get_username, "romeo@montague.example");
+
+    expect_function_calls(__wrap_purple_debug_warning, 2);
+
+    carbons_xml_received_cb(NULL, &received_carbons_node_p);
+
+    //TODO: check that message is the same as it came in, i.e. was not processed
+    // alternatively could also be set to empty message or something
+}
+
+/**
+ * Same as above, but for a carbon copy of a sent message.
+ */
+static void test_carbons_xml_received_cb_invalid_sender_sent(void ** state) {
+    (void) state;
+
+    const char * received_carbon_copy = 
+        "<message xmlns='jabber:client' "
+                "from='badguy@montague.example' "
+                "to='romeo@montague.example/home' "
+                "type='chat'>"
+            "<sent xmlns='urn:xmpp:carbons:2'>"
+                "<forwarded xmlns='urn:xmpp:forward:0'>"
+                    "<message xmlns='jabber:client' "
+                            "to='juliet@capulet.example/balcony' "
+                            "from='romeo@montague.example/home' "
+                            "type='chat'>"
+                        "<body>Neither, fair saint, if either thee dislike.</body>"
+                        "<thread>0e3141cd80894871a68e6fe6b1ec56fa</thread>"
+                    "</message>"
+                "</forwarded>"
+            "</sent>"
+        "</message>";
+    xmlnode * received_carbons_node_p = xmlnode_from_str(received_carbon_copy, -1);
+
+    will_return(__wrap_purple_connection_get_account, NULL);
+    will_return(__wrap_purple_account_get_username, "romeo@montague.example");
+
+    expect_function_calls(__wrap_purple_debug_warning, 2);
+
+    carbons_xml_received_cb(NULL, &received_carbons_node_p);
+
+    //TODO: check that message is the same as it came in, i.e. was not processed
+    // alternatively could also be set to empty message or something
+}
+
+/**
+ * Default case for a received carbon copy of a received message:
+ * Strip outer message and give libpurple the inner one.
  */
 static void test_carbons_xml_received_cb_received_success(void ** state) {
     (void) state;
 
     const char * received_carbon_copy = 
-    "<message xmlns='jabber:client' "
-             "from='romeo@montague.example' "
-             "to='romeo@montague.example/home' "
-             "type='chat'>"
-        "<received xmlns='urn:xmpp:carbons:2'>"
-            "<forwarded xmlns='urn:xmpp:forward:0'>"
-                "<message xmlns='jabber:client' "
-                         "from='juliet@capulet.example/balcony' "
-                         "to='romeo@montague.example/garden' "
-                         "type='chat'>"
-                    "<body>What man art thou that, thus bescreen'd in night, so stumblest on my counsel?</body>"
-                    "<thread>0e3141cd80894871a68e6fe6b1ec56fa</thread>"
-                "</message>"
-            "</forwarded>"
-        "</received>"
-    "</message>";
-
+        "<message xmlns='jabber:client' "
+                "from='romeo@montague.example' "
+                "to='romeo@montague.example/home' "
+                "type='chat'>"
+            "<received xmlns='urn:xmpp:carbons:2'>"
+                "<forwarded xmlns='urn:xmpp:forward:0'>"
+                    "<message xmlns='jabber:client' "
+                            "from='juliet@capulet.example/balcony' "
+                            "to='romeo@montague.example/garden' "
+                            "type='chat'>"
+                        "<body>What man art thou that, thus bescreen'd in night, so stumblest on my counsel?</body>"
+                        "<thread>0e3141cd80894871a68e6fe6b1ec56fa</thread>"
+                    "</message>"
+                "</forwarded>"
+            "</received>"
+        "</message>";
     xmlnode * received_carbons_node_p = xmlnode_from_str(received_carbon_copy, -1);
 
     will_return(__wrap_purple_connection_get_account, NULL);
@@ -435,12 +491,115 @@ static void test_carbons_xml_received_cb_received_success(void ** state) {
 
     assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "from"), "juliet@capulet.example/balcony");
     assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "to"), "romeo@montague.example/garden");
+    assert_ptr_not_equal(xmlnode_get_child(received_carbons_node_p, "body"), NULL);
+}
+
+/**
+ * Stop processing on malformed carbon-copy of received message: no 'forwaded' node.
+ */
+static void test_carbons_xml_received_cb_received_no_forwarded(void ** state) {
+    (void) state;
+
+    const char * received_carbon_copy = 
+        "<message xmlns='jabber:client' "
+                "from='romeo@montague.example' "
+                "to='romeo@montague.example/home' "
+                "type='chat'>"
+            "<received xmlns='urn:xmpp:carbons:2'>"
+                    "<message xmlns='jabber:client' "
+                            "from='juliet@capulet.example/balcony' "
+                            "to='romeo@montague.example/garden' "
+                            "type='chat'>"
+                        "<body>What man art thou that, thus bescreen'd in night, so stumblest on my counsel?</body>"
+                        "<thread>0e3141cd80894871a68e6fe6b1ec56fa</thread>"
+                    "</message>"
+            "</received>"
+        "</message>";
+    xmlnode * received_carbons_node_p = xmlnode_from_str(received_carbon_copy, -1);
+
+    will_return(__wrap_purple_connection_get_account, NULL);
+    will_return(__wrap_purple_account_get_username, "romeo@montague.example");
+
+    expect_function_call(__wrap_purple_debug_error);
+
+    carbons_xml_received_cb(NULL, &received_carbons_node_p);
+
+    // no change since there was no processing
+    assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "from"), "romeo@montague.example");
+    assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "to"), "romeo@montague.example/home");
+    assert_ptr_equal(xmlnode_get_child(received_carbons_node_p, "body"), NULL);
+}
+
+/**
+ * Stop processing on malformed carbon-copy of received message: no 'message' node.
+ */
+static void test_carbons_xml_received_cb_received_no_message(void ** state) {
+    (void) state;
+
+    const char * received_carbon_copy = 
+        "<message xmlns='jabber:client' "
+                "from='romeo@montague.example' "
+                "to='romeo@montague.example/home' "
+                "type='chat'>"
+            "<received xmlns='urn:xmpp:carbons:2'>"
+                "<forwarded />"
+            "</received>"
+        "</message>";
+    xmlnode * received_carbons_node_p = xmlnode_from_str(received_carbon_copy, -1);
+
+    will_return(__wrap_purple_connection_get_account, NULL);
+    will_return(__wrap_purple_account_get_username, "romeo@montague.example");
+
+    expect_function_call(__wrap_purple_debug_error);
+
+    carbons_xml_received_cb(NULL, &received_carbons_node_p);
+
+    // no change since there was no processing
+    assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "from"), "romeo@montague.example");
+    assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "to"), "romeo@montague.example/home");
+    assert_ptr_equal(xmlnode_get_child(received_carbons_node_p, "body"), NULL);
+}
+
+/**
+ * Default case for a received carbon copy of a sent message:
+ * Strip the outer message and give libpurple the inner one,
+ * plus inject another '<sent/>' node for detection by second, later callback.
+ */
+static void test_carbons_xml_received_cb_sent_success(void ** state) {
+    (void) state;
+
+    const char * received_carbon_copy =
+        "<message xmlns='jabber:client' "
+                "from='romeo@montague.example' "
+                "to='romeo@montague.example/garden' "
+                "type='chat'>"
+            "<sent xmlns='urn:xmpp:carbons:2'>"
+                "<forwarded xmlns='urn:xmpp:forward:0'>"
+                    "<message xmlns='jabber:client' "
+                            "to='juliet@capulet.example/balcony' "
+                            "from='romeo@montague.example/home' "
+                            "type='chat'>"
+                        "<body>Neither, fair saint, if either thee dislike.</body>"
+                        "<thread>0e3141cd80894871a68e6fe6b1ec56fa</thread>"
+                    "</message>"
+                "</forwarded>"
+            "</sent>"
+        "</message>";
+    xmlnode * received_carbons_node_p = xmlnode_from_str(received_carbon_copy, -1);
+
+    will_return(__wrap_purple_connection_get_account, NULL);
+    will_return(__wrap_purple_account_get_username, "romeo@montague.example");
+
+    carbons_xml_received_cb(NULL, &received_carbons_node_p);
+
+    assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "from"), "romeo@montague.example/home");
+    assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "to"), "juliet@capulet.example/balcony");
+    assert_ptr_not_equal(xmlnode_get_child(received_carbons_node_p, "body"), NULL);
+    assert_ptr_not_equal(xmlnode_get_child_with_namespace(received_carbons_node_p, "sent", CARBONS_XMLNS), NULL);
 }
 
 int main(void) {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_carbons_is_valid_valid),
-        cmocka_unit_test(test_carbons_is_valid_invalid),
         cmocka_unit_test(test_carbons_discover),
         cmocka_unit_test(test_carbons_discover_cb_success),
         cmocka_unit_test(test_carbons_discover_cb_real_world_reply),
@@ -451,7 +610,12 @@ int main(void) {
         cmocka_unit_test(test_carbons_discover_cb_empty_reply),
         cmocka_unit_test(test_carbons_xml_received_cb_nullptr),
         cmocka_unit_test(test_carbons_xml_received_cb_null),
-        cmocka_unit_test(test_carbons_xml_received_cb_received_success)
+        cmocka_unit_test(test_carbons_xml_received_cb_invalid_sender_received),
+        cmocka_unit_test(test_carbons_xml_received_cb_invalid_sender_sent),
+        cmocka_unit_test(test_carbons_xml_received_cb_received_success),
+        cmocka_unit_test(test_carbons_xml_received_cb_received_no_forwarded),
+        cmocka_unit_test(test_carbons_xml_received_cb_received_no_message),
+        cmocka_unit_test(test_carbons_xml_received_cb_sent_success)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
