@@ -9,7 +9,8 @@ install:
 build: off
 
 test_script:
-- sh: make test
+- sh: CMOCKA_MESSAGE_OUTPUT=XML CMOCKA_XML_FILE=build/cmocka_results.xml make test
 
 after_test:
+- sh: curl -F "file=@$APPVEYOR_BUILD_FOLDER/build/cmocka_results.xml" "https://ci.appveyor.com/api/testresults/xunit/$APPVEYOR_JOB_ID"
 - sh: bash <(curl -s https://codecov.io/bash) -g test/ -B $APPVEYOR_REPO_BRANCH -b $APPVEYOR_BUILD_VERSION
