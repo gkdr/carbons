@@ -75,7 +75,7 @@ test: $(TDIR)/test_carbons.c $(BDIR)
 	$(CC) $(CFLAGS_T) -c $< -o $(BDIR)/$@.o
 	$(CC) $(CFLAGS_T) --coverage  -c $(SDIR)/carbons.c -o $(BDIR)/carbons_coverage.o
 	$(CC) $(CFLAGS_T) --coverage $(PURPLE_DIR)/libjabber.so.0 $(BDIR)/$@.o $(BDIR)/carbons_coverage.o -o $(BDIR)/$@ $(LFLAGS_T)
-	-$(BDIR)/$@
+	-$(BDIR)/$@ 2>&1 | grep -Ev ".*CRITICAL.*" | tr -s '\n' # filter annoying and irrelevant glib output
 
 .PHONY: coverage
 coverage: test
