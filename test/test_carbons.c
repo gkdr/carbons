@@ -598,6 +598,72 @@ static void test_carbons_xml_received_cb_sent_success(void ** state) {
     assert_ptr_not_equal(xmlnode_get_child_with_namespace(received_carbons_node_p, "sent", CARBONS_XMLNS), NULL);
 }
 
+/**
+ * Stop processing on malformed carbon-copy of sent message: no 'forwaded' node.
+ */
+static void test_carbons_xml_received_cb_sent_no_forwarded(void ** state) {
+    (void) state;
+
+    const char * received_carbon_copy =
+        "<message xmlns='jabber:client' "
+                "from='romeo@montague.example' "
+                "to='romeo@montague.example/garden' "
+                "type='chat'>"
+            "<sent xmlns='urn:xmpp:carbons:2'>"
+                    "<message xmlns='jabber:client' "
+                            "to='juliet@capulet.example/balcony' "
+                            "from='romeo@montague.example/home' "
+                            "type='chat'>"
+                        "<body>Neither, fair saint, if either thee dislike.</body>"
+                        "<thread>0e3141cd80894871a68e6fe6b1ec56fa</thread>"
+                    "</message>"
+            "</sent>"
+        "</message>";
+    xmlnode * received_carbons_node_p = xmlnode_from_str(received_carbon_copy, -1);
+
+    will_return(__wrap_purple_connection_get_account, NULL);
+    will_return(__wrap_purple_account_get_username, "romeo@montague.example");
+
+    expect_function_call(__wrap_purple_debug_error);
+
+    carbons_xml_received_cb(NULL, &received_carbons_node_p);
+
+    // no change since there was no processing
+    assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "from"), "romeo@montague.example");
+    assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "to"), "romeo@montague.example/garden");
+    assert_ptr_equal(xmlnode_get_child(received_carbons_node_p, "body"), NULL);
+}
+
+/**
+ * Stop processing on malformed carbon-copy of sent message: no 'message' node.
+ */
+static void test_carbons_xml_received_cb_sent_no_message(void ** state) {
+    (void) state;
+
+    const char * received_carbon_copy =
+        "<message xmlns='jabber:client' "
+                "from='romeo@montague.example' "
+                "to='romeo@montague.example/garden' "
+                "type='chat'>"
+            "<sent xmlns='urn:xmpp:carbons:2'>"
+                "<forwarded />"
+            "</sent>"
+        "</message>";
+    xmlnode * received_carbons_node_p = xmlnode_from_str(received_carbon_copy, -1);
+
+    will_return(__wrap_purple_connection_get_account, NULL);
+    will_return(__wrap_purple_account_get_username, "romeo@montague.example");
+
+    expect_function_call(__wrap_purple_debug_error);
+
+    carbons_xml_received_cb(NULL, &received_carbons_node_p);
+
+    // no change since there was no processing
+    assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "from"), "romeo@montague.example");
+    assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "to"), "romeo@montague.example/garden");
+    assert_ptr_equal(xmlnode_get_child(received_carbons_node_p, "body"), NULL);
+}
+
 int main(void) {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_carbons_discover),
@@ -615,7 +681,9 @@ int main(void) {
         cmocka_unit_test(test_carbons_xml_received_cb_received_success),
         cmocka_unit_test(test_carbons_xml_received_cb_received_no_forwarded),
         cmocka_unit_test(test_carbons_xml_received_cb_received_no_message),
-        cmocka_unit_test(test_carbons_xml_received_cb_sent_success)
+        cmocka_unit_test(test_carbons_xml_received_cb_sent_success),
+        cmocka_unit_test(test_carbons_xml_received_cb_sent_no_forwarded),
+        cmocka_unit_test(test_carbons_xml_received_cb_sent_no_message)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
