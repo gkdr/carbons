@@ -130,8 +130,13 @@ void carbons_xml_stripped_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
   xmlnode * body_node_p       = (void *) 0;
   char * buddy_name_bare      = (void *) 0;
   PurpleConversation * conv_p = (void *) 0;
+  PurpleAccount * acc_p       = (void *) 0;
 
-  if (!(*stanza_pp) || g_strcmp0((*stanza_pp)->name, "message")) {
+  if (!stanza_pp || !(*stanza_pp)) {
+    return;
+  }
+
+  if (g_strcmp0((*stanza_pp)->name, "message")) {
     return;
   }  
 
@@ -141,20 +146,23 @@ void carbons_xml_stripped_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
   }
 
   body_node_p = xmlnode_get_child(*stanza_pp, "body");
-  if (body_node_p) {
-    buddy_name_bare = jabber_get_bare_jid(xmlnode_get_attrib(*stanza_pp, "to"));
-    conv_p = purple_find_conversation_with_account(PURPLE_CONV_TYPE_IM, buddy_name_bare, purple_connection_get_account(gc_p));
-    if (!conv_p) {
-      conv_p = purple_conversation_new(PURPLE_CONV_TYPE_IM, purple_connection_get_account(gc_p), buddy_name_bare);
-    }
-
-    purple_debug_info(CARBONS_LOG_CATEGORY, "Writing body of the carbon copy of a sent message to the conversation window with %s.\n", buddy_name_bare);
-    purple_conversation_write(conv_p, xmlnode_get_attrib(*stanza_pp, "from"), xmlnode_get_data(body_node_p), PURPLE_MESSAGE_SEND, time((void *) 0));
-
-    xmlnode_free(*stanza_pp);
-    *stanza_pp = (void *) 0;
-    g_free(buddy_name_bare);
+  if (!body_node_p) {
+    return;
   }
+
+  buddy_name_bare = jabber_get_bare_jid(xmlnode_get_attrib(*stanza_pp, "to"));
+  acc_p = purple_connection_get_account(gc_p);
+  conv_p = purple_find_conversation_with_account(PURPLE_CONV_TYPE_IM, buddy_name_bare, acc_p);
+  if (!conv_p) {
+    conv_p = purple_conversation_new(PURPLE_CONV_TYPE_IM, acc_p, buddy_name_bare);
+  }
+
+  purple_debug_info(CARBONS_LOG_CATEGORY, "Writing body of the carbon copy of a sent message to the conversation window with %s.\n", buddy_name_bare);
+  purple_conversation_write(conv_p, xmlnode_get_attrib(*stanza_pp, "from"), xmlnode_get_data(body_node_p), PURPLE_MESSAGE_SEND, time((void *) 0));
+
+  xmlnode_free(*stanza_pp);
+  *stanza_pp = (void *) 0;
+  g_free(buddy_name_bare);
 }
 
 void carbons_enable_cb(JabberStream * js_p, const char * from,

@@ -52,6 +52,9 @@ LFLAGS_T= $(LFLAGS) -lpurple -lcmocka -Wl,-rpath,$(PURPLE_DIR) \
 	-Wl,--wrap=purple_debug_warning \
 	-Wl,--wrap=purple_connection_get_account \
 	-Wl,--wrap=purple_connection_get_protocol_data \
+	-Wl,--wrap=purple_find_conversation_with_account \
+	-Wl,--wrap=purple_conversation_new \
+	-Wl,--wrap=purple_conversation_write \
 	-Wl,--wrap=jabber_iq_send
 
 all: $(BDIR)/carbons.so

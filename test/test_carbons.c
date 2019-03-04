@@ -6,63 +6,7 @@
 #include "jabber.h"
 
 #include "../src/carbons.h"
-
-#define CARBONS_XMLNS   "urn:xmpp:carbons:2"
-#define DISCO_XMLNS     "http://jabber.org/protocol/disco#info"
-
-char * __wrap_purple_account_get_username(PurpleAccount * acc_p) {
-    char * username;
-
-    username = mock_ptr_type(char *);
-
-    return username;
-}
-
-PurpleConnection * __wrap_purple_account_get_connection(PurpleAccount * acc_p) {
-    PurpleConnection * connection_p;
-
-    connection_p = mock_ptr_type(PurpleConnection *);
-
-    return connection_p;
-}
-
-PurpleAccount * __wrap_purple_connection_get_account(const PurpleConnection * gc_p) {
-    PurpleAccount * account_p;
-
-    account_p = mock_ptr_type(PurpleAccount *);
-
-    return account_p;
-}
-
-void * __wrap_purple_connection_get_protocol_data(const PurpleConnection * connection_p) {
-    JabberStream * js_p;
-
-    js_p = mock_ptr_type(JabberStream *);
-
-    return js_p;
-}
-
-void __wrap_jabber_iq_send(JabberIq * iq_p) {
-    check_expected(iq_p->type);
-    check_expected(iq_p->callback);
-
-    const char * to = xmlnode_get_attrib(iq_p->node, "to");
-    check_expected(to);
-
-    xmlnode * query_node_p = xmlnode_get_child_with_namespace(iq_p->node, "query", DISCO_XMLNS);
-    check_expected(query_node_p);
-
-    xmlnode * enable_node_p = xmlnode_get_child_with_namespace(iq_p->node, "enable", CARBONS_XMLNS);
-    check_expected(enable_node_p);
-}
-
-void __wrap_purple_debug_error(const char * category, const char * format, ...) {
-    function_called();
-}
-
-void __wrap_purple_debug_warning(const char * category, const char * format, ...) {
-    function_called();
-}
+#include "mocks.c"
 
 static void test_carbons_discover(void ** state) {
     (void) state;
@@ -664,6 +608,132 @@ static void test_carbons_xml_received_cb_sent_no_message(void ** state) {
     assert_ptr_equal(xmlnode_get_child(received_carbons_node_p, "body"), NULL);
 }
 
+static void test_carbons_xml_stripped_cb_nullptr(void ** state) {
+    (void) state;
+
+    carbons_xml_stripped_cb(NULL, NULL);
+}
+
+static void test_carbons_xml_stripped_cb_null(void ** state) {
+    (void) state;
+
+    xmlnode * node_p = NULL;
+    carbons_xml_stripped_cb(NULL, &node_p);
+}
+
+/**
+ * If the stanza contains an empty 'sent' node injected by the earlier callback, write the body to the conversation.
+ */
+static void test_carbons_xml_stripped_cb_success(void ** state) {
+    (void) state;
+
+    const char * stripped_carbon_copy =
+        "<message xmlns='jabber:client' "
+                "to='juliet@capulet.example/balcony' "
+                "from='romeo@montague.example/home' "
+                "type='chat'>"
+            "<sent xmlns='urn:xmpp:carbons:2' />"
+            "<body>Neither, fair saint, if either thee dislike.</body>"
+            "<thread>0e3141cd80894871a68e6fe6b1ec56fa</thread>"
+        "</message>";
+    xmlnode * stripped_carbons_node_p = xmlnode_from_str(stripped_carbon_copy, -1);
+
+    will_return(__wrap_purple_connection_get_account, NULL);
+    PurpleConversation * pc_p = NULL;
+    will_return(__wrap_purple_find_conversation_with_account, &pc_p);
+
+    expect_value(__wrap_purple_conversation_write, conv_p, &pc_p);
+    expect_string(__wrap_purple_conversation_write, who, "romeo@montague.example/home");
+    expect_string(__wrap_purple_conversation_write, message, "Neither, fair saint, if either thee dislike.");
+    expect_value(__wrap_purple_conversation_write, flags, PURPLE_MESSAGE_SEND);
+
+    carbons_xml_stripped_cb(NULL, &stripped_carbons_node_p);
+
+    // TODO: fix this shit, don't set pointers to null
+    assert_null(stripped_carbons_node_p);
+}
+
+/**
+ * Like above, but also create the conversation window if it does not exist yet.
+ */
+static void test_carbons_xml_stripped_cb_success_new_conv(void ** state) {
+    (void) state;
+
+    const char * stripped_carbon_copy =
+        "<message xmlns='jabber:client' "
+                "to='juliet@capulet.example/balcony' "
+                "from='romeo@montague.example/home' "
+                "type='chat'>"
+            "<sent xmlns='urn:xmpp:carbons:2' />"
+            "<body>Neither, fair saint, if either thee dislike.</body>"
+            "<thread>0e3141cd80894871a68e6fe6b1ec56fa</thread>"
+        "</message>";
+    xmlnode * stripped_carbons_node_p = xmlnode_from_str(stripped_carbon_copy, -1);
+
+    char * acc_mock = "fake purple account";
+    will_return(__wrap_purple_connection_get_account, &acc_mock);
+    will_return(__wrap_purple_find_conversation_with_account, NULL);
+
+    expect_value(__wrap_purple_conversation_new, type, PURPLE_CONV_TYPE_IM);
+    expect_value(__wrap_purple_conversation_new, account, &acc_mock);
+    expect_string(__wrap_purple_conversation_new, name, "juliet@capulet.example");
+
+    PurpleConversation * pc_p = NULL;
+    will_return(__wrap_purple_conversation_new, &pc_p);
+
+    expect_value(__wrap_purple_conversation_write, conv_p, &pc_p);
+    expect_string(__wrap_purple_conversation_write, who, "romeo@montague.example/home");
+    expect_string(__wrap_purple_conversation_write, message, "Neither, fair saint, if either thee dislike.");
+    expect_value(__wrap_purple_conversation_write, flags, PURPLE_MESSAGE_SEND);
+
+    carbons_xml_stripped_cb(NULL, &stripped_carbons_node_p);
+
+    // TODO: fix this shit, don't set pointers to null
+    assert_null(stripped_carbons_node_p);
+}
+
+/**
+ * Do nothing if the stanza is not a 'message'.
+ */
+static void test_carbons_xml_stripped_cb_not_a_message(void ** state) {
+    (void) state;
+
+    const char * stripped_carbon_copy =
+        "<iq xmlns='jabber:client' "
+                "to='juliet@capulet.example/balcony' "
+                "from='romeo@montague.example/home' "
+                "type='chat'>"
+            "<body>Neither, fair saint, if either thee dislike.</body>"
+            "<thread>0e3141cd80894871a68e6fe6b1ec56fa</thread>"
+        "</iq>";
+    xmlnode * stripped_carbons_node_p = xmlnode_from_str(stripped_carbon_copy, -1);
+
+    carbons_xml_stripped_cb(NULL, &stripped_carbons_node_p);
+
+    assert_string_equal(xmlnode_to_str(stripped_carbons_node_p, NULL), stripped_carbon_copy);
+}
+
+/**
+ * Do nothing if the stanza does not contain an empty 'sent' node.
+ */
+static void test_carbons_xml_stripped_cb_do_nothing(void ** state) {
+    (void) state;
+
+    const char * stripped_carbon_copy =
+        "<message xmlns='jabber:client' "
+                "to='juliet@capulet.example/balcony' "
+                "from='romeo@montague.example/home' "
+                "type='chat'>"
+            "<body>Neither, fair saint, if either thee dislike.</body>"
+            "<thread>0e3141cd80894871a68e6fe6b1ec56fa</thread>"
+        "</message>";
+    xmlnode * stripped_carbons_node_p = xmlnode_from_str(stripped_carbon_copy, -1);
+
+    carbons_xml_stripped_cb(NULL, &stripped_carbons_node_p);
+
+    assert_string_equal(xmlnode_to_str(stripped_carbons_node_p, NULL), stripped_carbon_copy);
+}
+
 int main(void) {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_carbons_discover),
@@ -683,7 +753,13 @@ int main(void) {
         cmocka_unit_test(test_carbons_xml_received_cb_received_no_message),
         cmocka_unit_test(test_carbons_xml_received_cb_sent_success),
         cmocka_unit_test(test_carbons_xml_received_cb_sent_no_forwarded),
-        cmocka_unit_test(test_carbons_xml_received_cb_sent_no_message)
+        cmocka_unit_test(test_carbons_xml_received_cb_sent_no_message),
+        cmocka_unit_test(test_carbons_xml_stripped_cb_nullptr),
+        cmocka_unit_test(test_carbons_xml_stripped_cb_null),
+        cmocka_unit_test(test_carbons_xml_stripped_cb_success),
+        cmocka_unit_test(test_carbons_xml_stripped_cb_success_new_conv),
+        cmocka_unit_test(test_carbons_xml_stripped_cb_not_a_message),
+        cmocka_unit_test(test_carbons_xml_stripped_cb_do_nothing)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
