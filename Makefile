@@ -1,5 +1,3 @@
-PURPLE_PLUGIN_DIR=~/.purple/plugins
-PIDGIN_DIR=./pidgin-2.11.0
 PURPLE_PLUGIN_SRC_DIR=$(PIDGIN_DIR)/libpurple/plugins
 
 CC ?= gcc
