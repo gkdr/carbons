@@ -89,3 +89,49 @@ PurpleConversation * __wrap_purple_conversation_new(PurpleConversationType type,
     conv_p = mock_ptr_type(PurpleConversation *);
     return conv_p;
 }
+
+void __wrap_jabber_add_feature(const gchar * namespace, JabberFeatureEnabled cb) {
+    check_expected(namespace);
+}
+
+void * __wrap_purple_accounts_get_handle(void) {
+    void * handle_p;
+    handle_p = mock_ptr_type(void *);
+    return handle_p;    
+}
+
+PurplePlugin * __wrap_purple_plugins_find_with_id(const char * id) {
+    check_expected(id);
+
+    PurplePlugin * plugin_p;
+    plugin_p = mock_ptr_type(PurplePlugin *);
+    return plugin_p;
+}
+
+gulong __wrap_purple_signal_connect(void * instance,
+                                    const char * signal,
+                                    void * handle,
+                                    PurpleCallback func,
+                                    void * data) {
+    check_expected_ptr(instance);
+    check_expected(signal);
+    check_expected_ptr(handle);
+    check_expected_ptr(func);
+
+    return 1; // ignored
+}
+
+gulong __wrap_purple_signal_connect_priority(void * instance,
+                                             const char * signal, 
+                                             void * handle,
+                                             PurpleCallback func,
+                                             void * data,
+                                             int priority) {
+    check_expected_ptr(instance);
+    check_expected(signal);
+    check_expected_ptr(handle);
+    check_expected_ptr(func);
+    check_expected(priority);
+
+    return 2; // ignored
+}

@@ -734,6 +734,43 @@ static void test_carbons_xml_stripped_cb_do_nothing(void ** state) {
     assert_string_equal(xmlnode_to_str(stripped_carbons_node_p, NULL), stripped_carbon_copy);
 }
 
+/**
+ * Add carbons to client capabilities, register the init callback for accounts signing on,
+ * and also the two message handling callbacks on incoming XML.
+ */
+static void test_carbons_plugin_load_app_start(void ** state) {
+    (void) state;
+
+    void * plugin_mock = "plugin mock";
+
+    expect_string(__wrap_jabber_add_feature, namespace, CARBONS_XMLNS);
+
+    void * accounts_handle_mock = "accounts handle mock";
+    will_return(__wrap_purple_accounts_get_handle, accounts_handle_mock);
+    expect_value(__wrap_purple_signal_connect, instance, accounts_handle_mock);
+    expect_string(__wrap_purple_signal_connect, signal, "account-signed-on");
+    expect_value(__wrap_purple_signal_connect, handle, plugin_mock);
+    expect_value(__wrap_purple_signal_connect, func, carbons_account_connect_cb);
+
+    void * jabber_handle_mock = "jabber handle mock";
+    expect_string_count(__wrap_purple_plugins_find_with_id, id, "prpl-jabber", 2);
+    will_return_count(__wrap_purple_plugins_find_with_id, jabber_handle_mock, 2);
+
+    expect_value(__wrap_purple_signal_connect_priority, instance, jabber_handle_mock);
+    expect_string(__wrap_purple_signal_connect_priority, signal, "jabber-receiving-xmlnode");
+    expect_value(__wrap_purple_signal_connect_priority, handle, plugin_mock);
+    expect_value(__wrap_purple_signal_connect_priority, func, carbons_xml_received_cb);
+    expect_value(__wrap_purple_signal_connect_priority, priority, PURPLE_PRIORITY_LOWEST + 100);
+
+    expect_value(__wrap_purple_signal_connect_priority, instance, jabber_handle_mock);
+    expect_string(__wrap_purple_signal_connect_priority, signal, "jabber-receiving-xmlnode");
+    expect_value(__wrap_purple_signal_connect_priority, handle, plugin_mock);
+    expect_value(__wrap_purple_signal_connect_priority, func, carbons_xml_stripped_cb);
+    expect_value(__wrap_purple_signal_connect_priority, priority, PURPLE_PRIORITY_HIGHEST - 50);
+    
+    assert_true(carbons_plugin_load(plugin_mock));
+}
+
 int main(void) {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_carbons_discover),
@@ -759,7 +796,8 @@ int main(void) {
         cmocka_unit_test(test_carbons_xml_stripped_cb_success),
         cmocka_unit_test(test_carbons_xml_stripped_cb_success_new_conv),
         cmocka_unit_test(test_carbons_xml_stripped_cb_not_a_message),
-        cmocka_unit_test(test_carbons_xml_stripped_cb_do_nothing)
+        cmocka_unit_test(test_carbons_xml_stripped_cb_do_nothing),
+        cmocka_unit_test(test_carbons_plugin_load_app_start)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

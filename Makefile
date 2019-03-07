@@ -48,6 +48,7 @@ LFLAGS= -ldl -lm $(PKGCFG_L) $(LJABBER)
 LFLAGS_T= $(LFLAGS) -lpurple -lcmocka -Wl,-rpath,$(PURPLE_DIR) \
 	-Wl,--wrap=purple_account_get_username \
 	-Wl,--wrap=purple_account_get_connection \
+	-Wl,--wrap=purple_accounts_get_handle \
 	-Wl,--wrap=purple_debug_error \
 	-Wl,--wrap=purple_debug_warning \
 	-Wl,--wrap=purple_connection_get_account \
@@ -55,6 +56,10 @@ LFLAGS_T= $(LFLAGS) -lpurple -lcmocka -Wl,-rpath,$(PURPLE_DIR) \
 	-Wl,--wrap=purple_find_conversation_with_account \
 	-Wl,--wrap=purple_conversation_new \
 	-Wl,--wrap=purple_conversation_write \
+	-Wl,--wrap=purple_plugins_find_with_id \
+	-Wl,--wrap=purple_signal_connect \
+	-Wl,--wrap=purple_signal_connect_priority \
+	-Wl,--wrap=jabber_add_feature \
 	-Wl,--wrap=jabber_iq_send
 
 all: $(BDIR)/carbons.so

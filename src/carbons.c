@@ -238,7 +238,7 @@ void carbons_discover(PurpleAccount * acc_p) {
   purple_debug_info(CARBONS_LOG_CATEGORY, "Sent feature discovery request for %s.\n", purple_account_get_username(acc_p));
 }
 
-static void carbons_account_connect_cb(PurpleAccount * acc_p) {
+void carbons_account_connect_cb(PurpleAccount * acc_p) {
   if (strcmp(purple_account_get_protocol_id(acc_p), "prpl-jabber")) {
     return;
   }
@@ -249,7 +249,7 @@ static void carbons_account_connect_cb(PurpleAccount * acc_p) {
   carbons_discover(acc_p);
 }
 
-static gboolean
+gboolean
 carbons_plugin_load(PurplePlugin * plugin_p) {
 
   GList * accs_l_p      = (void *) 0;

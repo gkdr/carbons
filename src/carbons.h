@@ -14,4 +14,7 @@ void carbons_enable_cb(JabberStream * js_p, const char * from,
                                   JabberIqType type,   const char * id,
                                   xmlnode * packet_p,  gpointer data_p);
 
+void carbons_account_connect_cb(PurpleAccount * acc_p);
+gboolean carbons_plugin_load(PurplePlugin * plugin_p);
+
 #endif /* __CARBONS_H */
