@@ -8,6 +8,20 @@
 #define CARBONS_XMLNS   "urn:xmpp:carbons:2"
 #define DISCO_XMLNS     "http://jabber.org/protocol/disco#info"
 
+gboolean __wrap_purple_account_is_connected(const PurpleAccount * acc_p) {
+    gboolean connected;
+    connected = mock_type(gboolean);
+    return connected;
+}
+
+const char * __wrap_purple_account_get_protocol_id(const PurpleAccount * acc_p) {
+    check_expected_ptr(acc_p);
+
+    char * protocol_id;
+    protocol_id = mock_ptr_type(char *);
+    return protocol_id;
+}
+
 char * __wrap_purple_account_get_username(PurpleAccount * acc_p) {
     char * username;
 
@@ -134,4 +148,10 @@ gulong __wrap_purple_signal_connect_priority(void * instance,
     check_expected(priority);
 
     return 2; // ignored
+}
+
+GList * __wrap_purple_accounts_get_all_active(void) {
+    GList * active_accounts;
+    active_accounts = mock_ptr_type(GList *);
+    return active_accounts;
 }

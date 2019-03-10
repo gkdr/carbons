@@ -767,8 +767,56 @@ static void test_carbons_plugin_load_app_start(void ** state) {
     expect_value(__wrap_purple_signal_connect_priority, handle, plugin_mock);
     expect_value(__wrap_purple_signal_connect_priority, func, carbons_xml_stripped_cb);
     expect_value(__wrap_purple_signal_connect_priority, priority, PURPLE_PRIORITY_HIGHEST - 50);
+
+    will_return(__wrap_purple_accounts_get_all_active, NULL);
+
+    assert_true(carbons_plugin_load(plugin_mock));
+}
+
+/**
+ * If the plugin is loaded while the application is already running, the functions which are usually called on
+ * account connect have to be called manually.
+ */
+static void test_carbons_plugin_load_while_connected(void ** state) {
+    (void) state;
+
+    void * plugin_mock = "plugin mock";
+
+    expect_string(__wrap_jabber_add_feature, namespace, CARBONS_XMLNS);
+
+    void * accounts_handle_mock = "accounts handle mock";
+    will_return(__wrap_purple_accounts_get_handle, accounts_handle_mock);
+    expect_value(__wrap_purple_signal_connect, instance, accounts_handle_mock);
+    expect_string(__wrap_purple_signal_connect, signal, "account-signed-on");
+    expect_value(__wrap_purple_signal_connect, handle, plugin_mock);
+    expect_value(__wrap_purple_signal_connect, func, carbons_account_connect_cb);
+
+    void * jabber_handle_mock = "jabber handle mock";
+    expect_string_count(__wrap_purple_plugins_find_with_id, id, "prpl-jabber", 2);
+    will_return_count(__wrap_purple_plugins_find_with_id, jabber_handle_mock, 2);
+
+    expect_value(__wrap_purple_signal_connect_priority, instance, jabber_handle_mock);
+    expect_string(__wrap_purple_signal_connect_priority, signal, "jabber-receiving-xmlnode");
+    expect_value(__wrap_purple_signal_connect_priority, handle, plugin_mock);
+    expect_value(__wrap_purple_signal_connect_priority, func, carbons_xml_received_cb);
+    expect_value(__wrap_purple_signal_connect_priority, priority, PURPLE_PRIORITY_LOWEST + 100);
+
+    expect_value(__wrap_purple_signal_connect_priority, instance, jabber_handle_mock);
+    expect_string(__wrap_purple_signal_connect_priority, signal, "jabber-receiving-xmlnode");
+    expect_value(__wrap_purple_signal_connect_priority, handle, plugin_mock);
+    expect_value(__wrap_purple_signal_connect_priority, func, carbons_xml_stripped_cb);
+    expect_value(__wrap_purple_signal_connect_priority, priority, PURPLE_PRIORITY_HIGHEST - 50);
+
+    PurpleAccount * account_p = malloc(sizeof(PurpleAccount));
+    will_return(__wrap_purple_accounts_get_all_active, g_list_prepend(NULL, account_p));
+    will_return(__wrap_purple_account_is_connected, TRUE);
+
+    expect_value(__wrap_purple_account_get_protocol_id, acc_p, account_p);
+    will_return(__wrap_purple_account_get_protocol_id, "does not matter, just checking if function is called");
     
     assert_true(carbons_plugin_load(plugin_mock));
+
+    free(account_p);
 }
 
 int main(void) {
@@ -797,7 +845,8 @@ int main(void) {
         cmocka_unit_test(test_carbons_xml_stripped_cb_success_new_conv),
         cmocka_unit_test(test_carbons_xml_stripped_cb_not_a_message),
         cmocka_unit_test(test_carbons_xml_stripped_cb_do_nothing),
-        cmocka_unit_test(test_carbons_plugin_load_app_start)
+        cmocka_unit_test(test_carbons_plugin_load_app_start),
+        cmocka_unit_test(test_carbons_plugin_load_while_connected)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
