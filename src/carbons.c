@@ -64,6 +64,10 @@ void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
     return;
   }
 
+  if (g_strcmp0((*stanza_pp)->name, "message")) {
+    return;
+  }
+
   carbons_node_p = xmlnode_get_child_with_namespace(*stanza_pp, "received", CARBONS_XMLNS);
   if (carbons_node_p) {
     purple_debug_info(CARBONS_LOG_CATEGORY, "Received carbon copy of a received message.\n");
@@ -223,7 +227,15 @@ void carbons_discover_cb(JabberStream * js_p, const char * from,
   purple_debug_info(CARBONS_LOG_CATEGORY, "Server does not support message carbons, therefore doing nothing for %s.\n", accname);
 }
 
-void carbons_discover(PurpleAccount * acc_p) {
+void carbons_account_connect_cb(PurpleAccount * acc_p) {
+  if (strcmp(purple_account_get_protocol_id(acc_p), JABBER_PROTOCOL_ID)) {
+    return;
+  }
+
+  // "migration code" - remove obsolete setting
+  purple_account_remove_setting(acc_p, CARBONS_SETTING_NAME);
+
+  // send discovery request
   JabberIq * jiq_p = (void *) 0;
   xmlnode * query_node_p = (void *) 0;
   JabberStream * js_p = purple_connection_get_protocol_data(purple_account_get_connection(acc_p));
@@ -238,17 +250,6 @@ void carbons_discover(PurpleAccount * acc_p) {
   purple_debug_info(CARBONS_LOG_CATEGORY, "Sent feature discovery request for %s.\n", purple_account_get_username(acc_p));
 }
 
-void carbons_account_connect_cb(PurpleAccount * acc_p) {
-  if (strcmp(purple_account_get_protocol_id(acc_p), JABBER_PROTOCOL_ID)) {
-    return;
-  }
-
-  // "migration code" - remove obsolete setting
-  purple_account_remove_setting(acc_p, CARBONS_SETTING_NAME);
-
-  carbons_discover(acc_p);
-}
-
 gboolean
 carbons_plugin_load(PurplePlugin * plugin_p) {
 
@@ -260,7 +261,6 @@ carbons_plugin_load(PurplePlugin * plugin_p) {
   (void) jabber_add_feature(CARBONS_XMLNS, (void *) 0);
 
   (void) purple_signal_connect(purple_accounts_get_handle(), "account-signed-on", plugin_p, PURPLE_CALLBACK(carbons_account_connect_cb), NULL);
-  //TODO use constant
   (void) purple_signal_connect_priority(purple_plugins_find_with_id(JABBER_PROTOCOL_ID), "jabber-receiving-xmlnode", plugin_p, PURPLE_CALLBACK(carbons_xml_received_cb), NULL, PURPLE_PRIORITY_LOWEST + 100);
   (void) purple_signal_connect_priority(purple_plugins_find_with_id(JABBER_PROTOCOL_ID), "jabber-receiving-xmlnode", plugin_p, PURPLE_CALLBACK(carbons_xml_stripped_cb), NULL, PURPLE_PRIORITY_HIGHEST - 50);
 
@@ -316,7 +316,7 @@ carbons_plugin_init(PurplePlugin * plugin_p)
 {
   PurplePluginInfo * info_p = plugin_p->info;
 
-  info_p->dependencies = g_list_prepend(info_p->dependencies, "prpl-jabber");
+  info_p->dependencies = g_list_prepend(info_p->dependencies, JABBER_PROTOCOL_ID);
 }
 
 PURPLE_INIT_PLUGIN(carbons, carbons_plugin_init, info)

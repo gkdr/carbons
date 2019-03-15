@@ -8,34 +8,6 @@
 #include "../src/carbons.h"
 #include "mocks.c"
 
-static void test_carbons_discover(void ** state) {
-    (void) state;
-
-    const char * test_domain = "test.org";
-    const char * test_jid = "me-testing@test.org/resource";
-
-    will_return(__wrap_purple_account_get_connection, NULL);
-
-    JabberStream * js_p = malloc(sizeof (JabberStream));
-    js_p->next_id = 1;
-    js_p->user = jabber_id_new(test_jid);
-    will_return(__wrap_purple_connection_get_protocol_data, js_p);
-
-    will_return(__wrap_purple_account_get_username, test_jid);
-
-    expect_value(__wrap_jabber_iq_send, iq_p->type, JABBER_IQ_GET);
-    expect_value(__wrap_jabber_iq_send, iq_p->callback, carbons_discover_cb);
-    expect_string(__wrap_jabber_iq_send, to, test_domain);
-    expect_not_value(__wrap_jabber_iq_send, query_node_p, NULL);
-
-    // not set here
-    expect_value(__wrap_jabber_iq_send, enable_node_p, NULL);
-
-    carbons_discover(NULL);
-
-    free(js_p);
-}
-
 /**
  * Shuould send well-formed "enable" request if feature is contained in discovery response.
  */
@@ -320,13 +292,35 @@ static void test_carbons_xml_received_cb_nullptr(void ** state) {
 }
 
 /**
- * Checks that the callback does not crash when the given xmlnode * is null.
+ * Do not crash when the given xmlnode * is null.
  */
 static void test_carbons_xml_received_cb_null(void ** state) {
     (void) state;
 
     xmlnode * node_p = NULL;
     carbons_xml_received_cb(NULL, &node_p);
+}
+
+/**
+ * Stop processing when the received stanza is not a 'message'.
+ */
+static void test_carbons_xml_received_cb_no_msg(void ** state) {
+    (void) state;
+
+    char * stanza =
+        "<iq xmlns='jabber:client' "
+                "to='juliet@capulet.example/balcony' "
+                "from='romeo@montague.example/home' "
+                "type='chat'>"
+            "<body>Neither, fair saint, if either thee dislike.</body>"
+            "<thread>0e3141cd80894871a68e6fe6b1ec56fa</thread>"
+        "</iq>";
+    xmlnode * iq_node_p = xmlnode_from_str(stanza, -1);
+
+    carbons_xml_received_cb(NULL, &iq_node_p);
+
+    xmlnode * body_node_p = xmlnode_get_child(iq_node_p, "body");
+    assert_string_equal("Neither, fair saint, if either thee dislike.", xmlnode_get_data(body_node_p));
 }
 
 /**
@@ -819,9 +813,58 @@ static void test_carbons_plugin_load_while_connected(void ** state) {
     free(account_p);
 }
 
+/**
+ * Send a discovery request on account connect, but only if the connecting account is of type XMPP-
+ */
+static void test_carbons_account_connect_cb(void ** state) {
+    (void) state;
+
+    const char * test_domain = "test.org";
+    const char * test_jid = "me-testing@test.org/resource";
+
+    will_return(__wrap_purple_account_get_protocol_id, "prpl-jabber");
+    expect_any(__wrap_purple_account_get_protocol_id, acc_p);
+    will_return(__wrap_purple_account_get_connection, NULL);
+
+    JabberStream * js_p = malloc(sizeof (JabberStream));
+    js_p->next_id = 1;
+    js_p->user = jabber_id_new(test_jid);
+    will_return(__wrap_purple_connection_get_protocol_data, js_p);
+
+    will_return(__wrap_purple_account_get_username, test_jid);
+
+    expect_value(__wrap_jabber_iq_send, iq_p->type, JABBER_IQ_GET);
+    expect_value(__wrap_jabber_iq_send, iq_p->callback, carbons_discover_cb);
+    expect_string(__wrap_jabber_iq_send, to, test_domain);
+    expect_not_value(__wrap_jabber_iq_send, query_node_p, NULL);
+
+    // not set here
+    expect_value(__wrap_jabber_iq_send, enable_node_p, NULL);
+
+    carbons_account_connect_cb(NULL);
+
+    free(js_p);
+}
+
+/**
+ * Notify user of an error if enabling carbons fails.
+ */
+static void test_carbons_enable_cb_error(void ** state) {
+    (void) state;
+
+    will_return(__wrap_purple_connection_get_account, "does not matter");
+    will_return(__wrap_purple_account_get_username, "does not matter");
+
+    expect_function_call(__wrap_purple_debug_error);
+
+    JabberStream * js_p = malloc(sizeof (JabberStream));
+    carbons_enable_cb(js_p, "", JABBER_IQ_ERROR, "", NULL, NULL);
+
+    free(js_p);
+}
+
 int main(void) {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_carbons_discover),
         cmocka_unit_test(test_carbons_discover_cb_success),
         cmocka_unit_test(test_carbons_discover_cb_real_world_reply),
         cmocka_unit_test(test_carbons_discover_cb_first_child),
@@ -831,6 +874,7 @@ int main(void) {
         cmocka_unit_test(test_carbons_discover_cb_empty_reply),
         cmocka_unit_test(test_carbons_xml_received_cb_nullptr),
         cmocka_unit_test(test_carbons_xml_received_cb_null),
+        cmocka_unit_test(test_carbons_xml_received_cb_no_msg),
         cmocka_unit_test(test_carbons_xml_received_cb_invalid_sender_received),
         cmocka_unit_test(test_carbons_xml_received_cb_invalid_sender_sent),
         cmocka_unit_test(test_carbons_xml_received_cb_received_success),
@@ -846,7 +890,9 @@ int main(void) {
         cmocka_unit_test(test_carbons_xml_stripped_cb_not_a_message),
         cmocka_unit_test(test_carbons_xml_stripped_cb_do_nothing),
         cmocka_unit_test(test_carbons_plugin_load_app_start),
-        cmocka_unit_test(test_carbons_plugin_load_while_connected)
+        cmocka_unit_test(test_carbons_plugin_load_while_connected),
+        cmocka_unit_test(test_carbons_account_connect_cb),
+        cmocka_unit_test(test_carbons_enable_cb_error)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
