@@ -4,7 +4,7 @@ image: Ubuntu1804
 
 install:
 - sh: sudo apt-get update
-- sh: sudo apt-get install -y libpurple-dev libglib2.0-dev libxml2-dev libcmocka-dev
+- sh: sudo apt-get install -y libpurple-dev libglib2.0-dev libxml2-dev libcmocka-dev mingw-w64 unzip
 
 build: off
 

@@ -1,6 +1,4 @@
 PURPLE_PLUGIN_DIR=~/.purple/plugins
-#PIDGIN_DIR=./pidgin-2.11.0
-#PURPLE_PLUGIN_SRC_DIR=$(PIDGIN_DIR)/libpurple/plugins
 
 CC ?= gcc
 PKG_CONFIG ?= pkg-config
@@ -33,7 +31,8 @@ PKGCFG_L=$(GLIB_LDFLAGS) \
 	 $(LIBPURPLE_LDFLAGS) \
 	 $(XML2_LDFLAGS)
 
-CFLAGS=-std=c11 -Wall -g -Wstrict-overflow -D_XOPEN_SOURCE=700 -D_BSD_SOURCE -D_DEFAULT_SOURCE $(PKGCFG_C) $(HEADERS)
+FLAGS+=-std=c11 -Wall -g -Wstrict-overflow -D_XOPEN_SOURCE=700 -D_BSD_SOURCE -D_DEFAULT_SOURCE
+CFLAGS=$(FLAGS) $(PKGCFG_C) $(HEADERS)
 CFLAGS_C= $(CFLAGS) -fPIC -shared
 CFLAGS_T= $(CFLAGS) -O0
 PLUGIN_CPPFLAGS=-DPURPLE_PLUGINS
@@ -78,6 +77,38 @@ $(BDIR)/carbons.so: $(BDIR)/carbons.o
 $(BDIR)/carbons.a: $(BDIR)/carbons.o
 	$(AR) rcs $@ $^
 
+$(BDIR)/carbons.dll: $(BDIR)/carbons.o
+	$(CC) $(CFLAGS_C) $(PLUGIN_CPPFLAGS) $(BDIR)/carbons.o -o $@ $(LFLAGS)
+
+WIN_CC ?= i686-w64-mingw32-gcc-win32
+WIN32_DEV_DIR ?= win32_dev
+GLIB_DIR ?= glib-2.28.8
+GLIB_PATH = ./$(WIN32_DEV_DIR)/$(GLIB_DIR)
+WIN_PIDGIN_PATH = ./$(WIN32_DEV_DIR)/pidgin-2.13.0-win32bin
+LIBXML2_DIR ?= libxml2-2.9.2_daa1
+LIBXML2_PATH = ./$(WIN32_DEV_DIR)/$(LIBXML2_DIR)
+WIN_HEADERS ?= -I$(GLIB_PATH)/include/glib-2.0 \
+	-I$(GLIB_PATH)/lib/glib-2.0/include \
+	-I/usr/include/libpurple \
+	-I./headers/jabber \
+	-I$(LIBXML2_PATH)/include/libxml2
+WIN_CFLAGS += $(FLAGS) $(WIN_HEADERS) $(PLUGIN_CPPFLAGS) -fPIC -shared
+
+WIN_LFLAGS = -L$(GLIB_PATH)/lib -lglib-2.0 -L$(WIN_PIDGIN_PATH) -lpurple -ljabber -L$(LIBXML2_PATH)/lib -lxml2 -static-libgcc
+
+windeps:
+	mkdir -p $(WIN32_DEV_DIR)
+	wget -nc -P $(WIN32_DEV_DIR) https://ftp.gnome.org/mirror/gnome.org/binaries/win32/glib/2.28/glib-dev_2.28.8-1_win32.zip
+	unzip -n $(WIN32_DEV_DIR)/glib-dev_2.28.8-1_win32.zip -d $(GLIB_PATH)
+	-wget -nc -O $(WIN32_DEV_DIR)/pidgin-2.13.0-win32-bin.zip https://sourceforge.net/projects/pidgin/files/Pidgin/2.13.0/pidgin-2.13.0-win32-bin.zip/download
+	unzip -n $(WIN32_DEV_DIR)/pidgin-2.13.0-win32-bin.zip -d $(WIN32_DEV_DIR)
+	wget -nc -P $(WIN32_DEV_DIR) https://developer.pidgin.im/static/win32/libxml2-2.9.2_daa1.tar.gz
+	-tar xvzkf $(WIN32_DEV_DIR)/libxml2-2.9.2_daa1.tar.gz --directory $(WIN32_DEV_DIR)
+
+win: $(SDIR)/carbons.c $(BDIR) windeps
+	$(WIN_CC) $(WIN_CFLAGS) -c ./src/carbons.c -o $(BDIR)/carbons_win.o
+	$(WIN_CC) $(WIN_CFLAGS) $(BDIR)/carbons_win.o -o $(BDIR)/carbons.dll $(WIN_LFLAGS)
+
 install: $(BDIR)/carbons.so
 	mkdir -p $(PURPLE_PLUGIN_DIR)
 	cp $(BDIR)/carbons.so $(PURPLE_PLUGIN_DIR)/carbons.so
@@ -97,3 +128,7 @@ coverage: test
 .PHONY: clean
 clean:
 	rm -rf $(BDIR)
+
+.PHONY: clean-all
+clean-all: clean
+	rm -rf $(WIN32_DEV_DIR)
