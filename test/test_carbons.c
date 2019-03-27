@@ -737,8 +737,6 @@ static void test_carbons_plugin_load_app_start(void ** state) {
 
     void * plugin_mock = "plugin mock";
 
-    expect_string(__wrap_jabber_add_feature, namespace, CARBONS_XMLNS);
-
     void * accounts_handle_mock = "accounts handle mock";
     will_return(__wrap_purple_accounts_get_handle, accounts_handle_mock);
     expect_value(__wrap_purple_signal_connect, instance, accounts_handle_mock);
@@ -764,6 +762,8 @@ static void test_carbons_plugin_load_app_start(void ** state) {
 
     will_return(__wrap_purple_accounts_get_all_active, NULL);
 
+    expect_string(__wrap_jabber_add_feature, namespace, CARBONS_XMLNS);
+
     assert_true(carbons_plugin_load(plugin_mock));
 }
 
@@ -775,8 +775,6 @@ static void test_carbons_plugin_load_while_connected(void ** state) {
     (void) state;
 
     void * plugin_mock = "plugin mock";
-
-    expect_string(__wrap_jabber_add_feature, namespace, CARBONS_XMLNS);
 
     void * accounts_handle_mock = "accounts handle mock";
     will_return(__wrap_purple_accounts_get_handle, accounts_handle_mock);
@@ -807,6 +805,8 @@ static void test_carbons_plugin_load_while_connected(void ** state) {
 
     expect_value(__wrap_purple_account_get_protocol_id, acc_p, account_p);
     will_return(__wrap_purple_account_get_protocol_id, "does not matter, just checking if function is called");
+
+    // unfortunately, there is currently no way to check that jabber_add_feature was NOT called
     
     assert_true(carbons_plugin_load(plugin_mock));
 
