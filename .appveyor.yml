@@ -16,5 +16,5 @@ after_test:
 - sh: bash <(curl -s https://codecov.io/bash) -g test/ -B $APPVEYOR_REPO_BRANCH -b $APPVEYOR_BUILD_VERSION
 
 artifacts:
-  - path: build/carbons.so
+  - path: '**\*.so'
     name: carbons-$APPVEYOR_BUILD_NUMBER-$APPVEYOR_REPO_COMMIT.so
