@@ -6,7 +6,8 @@ install:
 - sh: sudo apt-get update
 - sh: sudo apt-get install -y libpurple-dev libglib2.0-dev libxml2-dev libcmocka-dev mingw-w64 unzip --no-install-recommends
 
-build: off
+build_script:
+- sh: make
 
 test_script:
 - sh: CMOCKA_MESSAGE_OUTPUT=XML CMOCKA_XML_FILE=build/cmocka_results.xml make test
@@ -16,5 +17,5 @@ after_test:
 - sh: bash <(curl -s https://codecov.io/bash) -g test/ -B $APPVEYOR_REPO_BRANCH -b $APPVEYOR_BUILD_VERSION
 
 artifacts:
-  - path: '**\*.so'
+  - path: build/carbons.so
     name: carbons-$APPVEYOR_BUILD_NUMBER-$APPVEYOR_REPO_COMMIT.so
