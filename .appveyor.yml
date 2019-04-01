@@ -8,6 +8,7 @@ install:
 
 build_script:
 - sh: make
+- sh: make win
 
 test_script:
 - sh: CMOCKA_MESSAGE_OUTPUT=XML CMOCKA_XML_FILE=build/cmocka_results.xml make test
@@ -16,6 +17,11 @@ after_test:
 - sh: curl -v -F "file=@$APPVEYOR_BUILD_FOLDER/build/cmocka_results.xml" "https://ci.appveyor.com/api/testresults/junit/$APPVEYOR_JOB_ID"
 - sh: bash <(curl -s https://codecov.io/bash) -g test/ -B $APPVEYOR_REPO_BRANCH -b $APPVEYOR_BUILD_VERSION
 
+cache:
+  - win32_dev
+
 artifacts:
   - path: build/carbons.so
-    name: carbons-$APPVEYOR_BUILD_NUMBER-$APPVEYOR_REPO_COMMIT.so
+    name: carbons-$APPVEYOR_BUILD_VERSION-$APPVEYOR_REPO_COMMIT.so
+  - path: build/carbons.dll
+    name: carbons-$APPVEYOR_BUILD_VERSION-$APPVEYOR_REPO_COMMIT.dll
