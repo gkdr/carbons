@@ -39,20 +39,37 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 /**
  * From section 11, security considerations:
  * 'Any forwarded copies received by a Carbons-enabled client MUST be from that user's bare JID'
+ * 
+ * If there was an attempt to fake a message, this function will return 0 and delete all children.
+ * Otherwise it just returns 1.
 */
-static int carbons_is_valid(PurpleAccount * acc_p, xmlnode * outer_msg_stanza_p) {
-  char ** split;
+static int carbons_filter_invalid(PurpleAccount * acc_p, xmlnode * outer_msg_stanza_p) {
+  char ** split = (void *) 0;
+  xmlnode * curr_node_p = (void *) 0;
+  xmlnode * temp_node_p = (void *) 0;
+
+  int ret_val = 0;
 
   split = g_strsplit(purple_account_get_username(acc_p), "/", 2);
 
   if (g_strcmp0(split[0], xmlnode_get_attrib(outer_msg_stanza_p, "from"))) {
     purple_debug_warning(CARBONS_LOG_CATEGORY, "Invalid sender: %s (should be: %s)\n", xmlnode_get_attrib(outer_msg_stanza_p, "from"), split[0]);
-    g_strfreev(split);
-    return 0;
+
+    curr_node_p = outer_msg_stanza_p->child;
+    while(curr_node_p) {
+      temp_node_p = curr_node_p->next;
+      xmlnode_free(curr_node_p);
+      curr_node_p = temp_node_p;  
+    }
+
+    ret_val = 0;
   } else {
-    g_strfreev(split);
-    return 1;
+    ret_val = 1;
   }
+
+  g_strfreev(split);
+
+  return ret_val;
 }
 
 void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
@@ -72,7 +89,7 @@ void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
   if (carbons_node_p) {
     purple_debug_info(CARBONS_LOG_CATEGORY, "Received carbon copy of a received message.\n");
 
-    if (!carbons_is_valid(purple_connection_get_account(gc_p), *stanza_pp)) {
+    if (!carbons_filter_invalid(purple_connection_get_account(gc_p), *stanza_pp)) {
       purple_debug_warning(CARBONS_LOG_CATEGORY, "Ignoring carbon copy of received message with invalid sender.\n");
       return;
     }
@@ -99,7 +116,7 @@ void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
   if (carbons_node_p) {
     purple_debug_info(CARBONS_LOG_CATEGORY, "Received carbon copy of a sent message.\n");
 
-    if (!carbons_is_valid(purple_connection_get_account(gc_p), *stanza_pp)) {
+    if (!carbons_filter_invalid(purple_connection_get_account(gc_p), *stanza_pp)) {
       purple_debug_warning(CARBONS_LOG_CATEGORY, "Ignoring carbon copy of sent message with invalid sender.\n");
       return;
     }
@@ -164,8 +181,9 @@ void carbons_xml_stripped_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
   purple_debug_info(CARBONS_LOG_CATEGORY, "Writing body of the carbon copy of a sent message to the conversation window with %s.\n", buddy_name_bare);
   purple_conversation_write(conv_p, xmlnode_get_attrib(*stanza_pp, "from"), xmlnode_get_data(body_node_p), PURPLE_MESSAGE_SEND, time((void *) 0));
 
-  xmlnode_free(*stanza_pp);
-  *stanza_pp = (void *) 0;
+  xmlnode_free(body_node_p);
+  xmlnode_free(carbons_node_p);
+  
   g_free(buddy_name_bare);
 }
 

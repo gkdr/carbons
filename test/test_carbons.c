@@ -325,7 +325,7 @@ static void test_carbons_xml_received_cb_no_msg(void ** state) {
 
 /**
  * 'Reject' carbons messages sent by someone other than the own, bare JID.
- * I.e., stop processing it and let libpurple ignore it.
+ * Removes the inner carbons node since it's a malicious message.
  */
 static void test_carbons_xml_received_cb_invalid_sender_received(void ** state) {
     (void) state;
@@ -356,8 +356,8 @@ static void test_carbons_xml_received_cb_invalid_sender_received(void ** state) 
 
     carbons_xml_received_cb(NULL, &received_carbons_node_p);
 
-    //TODO: check that message is the same as it came in, i.e. was not processed
-    // alternatively could also be set to empty message or something
+    assert_non_null(received_carbons_node_p);
+    assert_null(xmlnode_get_child(received_carbons_node_p, "received"));
 }
 
 /**
@@ -392,8 +392,8 @@ static void test_carbons_xml_received_cb_invalid_sender_sent(void ** state) {
 
     carbons_xml_received_cb(NULL, &received_carbons_node_p);
 
-    //TODO: check that message is the same as it came in, i.e. was not processed
-    // alternatively could also be set to empty message or something
+    assert_non_null(received_carbons_node_p);
+    assert_null(xmlnode_get_child(received_carbons_node_p, "sent"));
 }
 
 /**
@@ -433,7 +433,7 @@ static void test_carbons_xml_received_cb_received_success(void ** state) {
 }
 
 /**
- * Stop processing on malformed carbon-copy of received message: no 'forwaded' node.
+ * Stop processing on malformed carbon-copy of received message: no 'forwarded' node.
  */
 static void test_carbons_xml_received_cb_received_no_forwarded(void ** state) {
     (void) state;
@@ -643,8 +643,9 @@ static void test_carbons_xml_stripped_cb_success(void ** state) {
 
     carbons_xml_stripped_cb(NULL, &stripped_carbons_node_p);
 
-    // TODO: fix this shit, don't set pointers to null
-    assert_null(stripped_carbons_node_p);
+    assert_non_null(stripped_carbons_node_p);
+    assert_null(xmlnode_get_child(stripped_carbons_node_p, "sent"));
+    assert_null(xmlnode_get_child(stripped_carbons_node_p, "body"));
 }
 
 /**
@@ -682,8 +683,9 @@ static void test_carbons_xml_stripped_cb_success_new_conv(void ** state) {
 
     carbons_xml_stripped_cb(NULL, &stripped_carbons_node_p);
 
-    // TODO: fix this shit, don't set pointers to null
-    assert_null(stripped_carbons_node_p);
+    assert_non_null(stripped_carbons_node_p);
+    assert_null(xmlnode_get_child(stripped_carbons_node_p, "sent"));
+    assert_null(xmlnode_get_child(stripped_carbons_node_p, "body"));
 }
 
 /**
