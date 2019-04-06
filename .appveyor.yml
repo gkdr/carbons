@@ -25,3 +25,14 @@ artifacts:
     name: carbons-$APPVEYOR_BUILD_VERSION-$APPVEYOR_REPO_COMMIT.so
   - path: build/carbons.dll
     name: carbons-$APPVEYOR_BUILD_VERSION-$APPVEYOR_REPO_COMMIT.dll
+
+deploy:
+  description: 'Release description'
+  provider: GitHub
+  auth_token:
+    secure: cdAyB4V+IR862PUMggKUTfrWBlZa3VUg5tolJzARYajRxWLiYGzw2VQcAPpmHZsL
+  artifact: build/carbons.so,build/carbons.dll
+  draft: true
+  on:
+    branch: master        
+    APPVEYOR_REPO_TAG: true
