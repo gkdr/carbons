@@ -114,7 +114,7 @@ install: $(BDIR)/carbons.so
 	install -Dm0644 $(BDIR)/carbons.so $(DESTDIR)$(PURPLE_PLUGIN_DIR)/carbons.so
 
 install-home: $(BDIR)/carbons.so
-	install -Dm0644 $(BDIR)/carbons.so $(PURPLE_HOME_PLUGIN_DIR)/lurch.so
+	install -Dm0644 $(BDIR)/carbons.so $(PURPLE_HOME_PLUGIN_DIR)/carbons.so
 
 .PHONY: test
 test: $(TDIR)/test_carbons.c $(BDIR)
