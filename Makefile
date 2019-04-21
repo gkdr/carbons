@@ -1,5 +1,3 @@
-PURPLE_PLUGIN_DIR=~/.purple/plugins
-
 CC ?= gcc
 PKG_CONFIG ?= pkg-config
 
@@ -15,6 +13,8 @@ GLIB_LDFLAGS ?= $(shell $(PKG_CONFIG) --libs glib-2.0)
 
 LIBPURPLE_CFLAGS ?= $(shell $(PKG_CONFIG) --cflags purple)
 LIBPURPLE_LDFLAGS ?= $(shell $(PKG_CONFIG) --cflags purple) -L$(PURPLE_DIR)
+
+PURPLE_PLUGIN_DIR ?= $(shell $(PKG_CONFIG) --variable=plugindir purple)
 
 XML2_CONFIG ?= xml2-config
 XML2_CFLAGS ?= $(shell $(XML2_CONFIG) --cflags)
@@ -110,8 +110,7 @@ win: $(SDIR)/carbons.c $(BDIR) windeps
 	$(WIN_CC) $(WIN_CFLAGS) $(BDIR)/carbons_win.o -o $(BDIR)/carbons.dll $(WIN_LFLAGS)
 
 install: $(BDIR)/carbons.so
-	mkdir -p $(PURPLE_PLUGIN_DIR)
-	cp $(BDIR)/carbons.so $(PURPLE_PLUGIN_DIR)/carbons.so
+	install -Dm0644 $(BDIR)/carbons.so $(DESTDIR)$(PURPLE_PLUGIN_DIR)/carbons.so
 
 .PHONY: test
 test: $(TDIR)/test_carbons.c $(BDIR)
