@@ -15,6 +15,7 @@ LIBPURPLE_CFLAGS ?= $(shell $(PKG_CONFIG) --cflags purple)
 LIBPURPLE_LDFLAGS ?= $(shell $(PKG_CONFIG) --cflags purple) -L$(PURPLE_DIR)
 
 PURPLE_PLUGIN_DIR ?= $(shell $(PKG_CONFIG) --variable=plugindir purple)
+PURPLE_HOME_PLUGIN_DIR=$(HOME)/.purple/plugins
 
 XML2_CONFIG ?= xml2-config
 XML2_CFLAGS ?= $(shell $(XML2_CONFIG) --cflags)
@@ -111,6 +112,9 @@ win: $(SDIR)/carbons.c $(BDIR) windeps
 
 install: $(BDIR)/carbons.so
 	install -Dm0644 $(BDIR)/carbons.so $(DESTDIR)$(PURPLE_PLUGIN_DIR)/carbons.so
+
+install-home: $(BDIR)/carbons.so
+	install -Dm0644 $(BDIR)/carbons.so $(PURPLE_HOME_PLUGIN_DIR)/lurch.so
 
 .PHONY: test
 test: $(TDIR)/test_carbons.c $(BDIR)
