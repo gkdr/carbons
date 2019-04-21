@@ -1,7 +1,7 @@
 #ifndef __CARBONS_H
 # define __CARBONS_H
 
-# define CARBONS_VERSION "0.2.1"
+# define CARBONS_VERSION "0.2.2"
 # define CARBONS_AUTHOR "Richard Bayerle <riba@firemail.cc>"
 
 void carbons_xml_received_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp);

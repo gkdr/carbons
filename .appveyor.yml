@@ -1,4 +1,4 @@
-version: 0.2.2-dev-{build}
+version: 0.2.2
 
 image: Ubuntu1804
 
