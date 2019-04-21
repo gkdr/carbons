@@ -1,7 +1,3 @@
-PURPLE_PLUGIN_DIR=~/.purple/plugins
-PIDGIN_DIR=./pidgin-2.11.0
-PURPLE_PLUGIN_SRC_DIR=$(PIDGIN_DIR)/libpurple/plugins
-
 CC ?= gcc
 
 PKG_CONFIG ?= pkg-config
@@ -11,6 +7,8 @@ GLIB_LDFLAGS ?= $(shell $(PKG_CONFIG) --libs glib-2.0)
 LIBPURPLE_CFLAGS ?= $(shell $(PKG_CONFIG) --cflags purple)
 LIBPURPLE_LDFLAGS ?= $(shell $(PKG_CONFIG) --cflags purple) \
 		     -L$(shell $(PKG_CONFIG) --variable=plugindir purple)
+
+PURPLE_PLUGIN_DIR ?= $(shell $(PKG_CONFIG) --variable=plugindir purple)
 
 XML2_CONFIG ?= xml2-config
 XML2_CFLAGS ?= $(shell $(XML2_CONFIG) --cflags)
@@ -56,8 +54,7 @@ $(BDIR)/carbons.a: $(BDIR)/carbons.o
 	$(AR) rcs $@ $^
 
 install: $(BDIR)/carbons.so
-	mkdir -p $(PURPLE_PLUGIN_DIR)
-	cp $(BDIR)/carbons.so $(PURPLE_PLUGIN_DIR)/carbons.so
+	install -Dm0644 $(BDIR)/carbons.so $(DESTDIR)$(PURPLE_PLUGIN_DIR)/carbons.so
 
 .PHONY: clean
 clean:
