@@ -34,5 +34,4 @@ deploy:
   artifact: build/carbons.so,build/carbons.dll
   draft: true
   on:
-    branch: master        
     APPVEYOR_REPO_TAG: true
