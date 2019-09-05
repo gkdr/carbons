@@ -1,0 +1,20 @@
+Source: carbons
+Section: net
+Priority: optional
+Maintainer: Richard Bayerle <riba@firemail.cc>
+Build-Depends:
+ debhelper (>= 11),
+ libpurple-dev,
+ libglib2.0-dev,
+ libpurple0,
+ libxml2-dev,
+ libcmocka-dev,
+Standards-Version: 4.2.1
+Homepage: https://github.com/gkdr/carbons
+
+Package: purple-carbons
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: XEP-0280: Message Carbons plugin for libpurple
