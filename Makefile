@@ -32,8 +32,8 @@ PKGCFG_L=$(GLIB_LDFLAGS) \
 	 $(LIBPURPLE_LDFLAGS) \
 	 $(XML2_LDFLAGS)
 
-FLAGS+=-std=c11 -Wall -g -Wstrict-overflow -D_XOPEN_SOURCE=700 -D_BSD_SOURCE -D_DEFAULT_SOURCE
-CFLAGS=$(FLAGS) $(PKGCFG_C) $(HEADERS)
+FLAGS+=-std=c11 -Wall -g -Wstrict-overflow -D_XOPEN_SOURCE=700 -D_BSD_SOURCE -D_DEFAULT_SOURCE $(CPPFLAGS)
+CFLAGS+= $(FLAGS) $(PKGCFG_C) $(HEADERS)
 CFLAGS_C= $(CFLAGS) -fPIC -shared
 CFLAGS_T= $(CFLAGS) -O0
 PLUGIN_CPPFLAGS=-DPURPLE_PLUGINS
@@ -44,7 +44,7 @@ else
 	LJABBER?=-ljabber
 endif
 
-LFLAGS= -ldl -lm $(PKGCFG_L) $(LJABBER)
+LFLAGS= $(LDFLAGS) -ldl -lm $(PKGCFG_L) $(LJABBER)
 LFLAGS_T= $(LFLAGS) -lpurple -lcmocka -Wl,-rpath,$(PURPLE_DIR) \
 	-Wl,--wrap=purple_account_is_connected \
 	-Wl,--wrap=purple_account_get_connection \
