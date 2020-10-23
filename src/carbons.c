@@ -152,6 +152,7 @@ void carbons_xml_stripped_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
   char * buddy_name_bare      = (void *) 0;
   PurpleConversation * conv_p = (void *) 0;
   PurpleAccount * acc_p       = (void *) 0;
+  char * body_data            = (void *) 0;
 
   if (!stanza_pp || !(*stanza_pp)) {
     return;
@@ -179,11 +180,14 @@ void carbons_xml_stripped_cb(PurpleConnection * gc_p, xmlnode ** stanza_pp) {
   }
 
   purple_debug_info(CARBONS_LOG_CATEGORY, "Writing body of the carbon copy of a sent message to the conversation window with %s.\n", buddy_name_bare);
-  purple_conversation_write(conv_p, xmlnode_get_attrib(*stanza_pp, "from"), xmlnode_get_data(body_node_p), PURPLE_MESSAGE_SEND, time((void *) 0));
+  body_data = xmlnode_get_data(body_node_p);
+  purple_conversation_write(conv_p, xmlnode_get_attrib(*stanza_pp, "from"), body_data, PURPLE_MESSAGE_SEND, time((void *) 0));
+
 
   xmlnode_free(body_node_p);
   xmlnode_free(carbons_node_p);
   
+  g_free(body_data);
   g_free(buddy_name_bare);
 }
 
