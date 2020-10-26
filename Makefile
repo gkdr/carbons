@@ -44,7 +44,7 @@ else
 	LJABBER?=-ljabber
 endif
 
-LFLAGS= $(LDFLAGS) -ldl -lm $(PKGCFG_L) $(LJABBER)
+LFLAGS= $(LDFLAGS) -ldl -lm $(PKGCFG_L) $(LJABBER) -Wl,-rpath,$(PURPLE_DIR)
 LFLAGS_T= $(LFLAGS) -lpurple -lcmocka -Wl,-rpath,$(PURPLE_DIR) \
 	-Wl,--wrap=purple_account_is_connected \
 	-Wl,--wrap=purple_account_get_connection \
