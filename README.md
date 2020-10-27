@@ -3,7 +3,7 @@
 [![codecov](https://codecov.io/gh/gkdr/carbons/branch/dev/graph/badge.svg)](https://codecov.io/gh/gkdr/carbons)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/gkdr/carbons.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/gkdr/carbons/context:cpp)
 
-Experimental [XEP-0280: Message Carbons](https://xmpp.org/extensions/xep-0280.html) plugin for libpurple (Pidgin, Finch, etc.)
+Experimental [XEP-0280: Message Carbons](https://xmpp.org/extensions/xep-0280.html) (v0.13.2) plugin for libpurple (Pidgin, Finch, etc.).
 
 It enables you to have a consistent view of both sent and received messages between all devices which are online at the same time.
 
