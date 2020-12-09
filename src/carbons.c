@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "iq.h"
 
 #include "carbons.h"
-#include "carbons_int.h"
+#include "carbons_internal.h"
 
 #define JABBER_PROTOCOL_ID "prpl-jabber"
 
