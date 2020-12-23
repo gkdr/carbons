@@ -6,7 +6,7 @@
 #include "jabber.h"
 
 #include "../src/carbons.h"
-#include "../src/carbons_int.h"
+#include "../src/carbons_internal.h"
 #include "mocks.c"
 
 /**
