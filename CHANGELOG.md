@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - This file.
 - LICENSE file to make GitHub happy ([#39](https://github.com/gkdr/carbons/issues/39)).
 - The implemented XEP version to the README ([#41](https://github.com/gkdr/carbons/issues/41)).
+- A `carbons_internal.h` file declaring internal functions ([#33](https://github.com/gkdr/carbons/pull/33)) (needed and added by [@shtrom](https://github.com/shtrom) :) )
 
 ### Fixed
 - AppVeyor will now only push tagged builds to GitHub releases.
