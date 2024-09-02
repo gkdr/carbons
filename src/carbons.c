@@ -40,35 +40,64 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 /**
  * From section 11, security considerations:
  * 'Any forwarded copies received by a Carbons-enabled client MUST be from that user's bare JID'
+ * See https://datatracker.ietf.org/doc/html/rfc7622 for details on JID comparison.
  * 
  * If there was an attempt to fake a message, this function will return 0 and delete all children.
  * Otherwise it just returns 1.
 */
 static int carbons_filter_invalid(PurpleAccount * acc_p, xmlnode * outer_msg_stanza_p) {
-  char ** split = (void *) 0;
+  gchar ** split = (void *) 0;
+  gchar * normalized_username = (void *) 0;
+  gchar * folded_username = (void *) 0;
+  gchar * normalized_from = (void *) 0;
+  gchar * folded_from = (void *) 0;
   xmlnode * curr_node_p = (void *) 0;
   xmlnode * temp_node_p = (void *) 0;
+  const char * from = (void *) 0;
 
   int ret_val = 0;
 
   split = g_strsplit(purple_account_get_username(acc_p), "/", 2);
+  normalized_username = g_utf8_normalize(split[0], -1, G_NORMALIZE_ALL);
+  if (!normalized_username) {
+    purple_debug_error(CARBONS_LOG_CATEGORY, "Own account's username is not valid UTF-8: '%s'\n", split[0]);
+    ret_val = 0;
+    goto cleanup;
+  }
+  folded_username = g_utf8_casefold(normalized_username, -1);
 
-  if (g_strcmp0(split[0], xmlnode_get_attrib(outer_msg_stanza_p, "from"))) {
-    purple_debug_warning(CARBONS_LOG_CATEGORY, "Invalid sender: %s (should be: %s)\n", xmlnode_get_attrib(outer_msg_stanza_p, "from"), split[0]);
+  from = xmlnode_get_attrib(outer_msg_stanza_p, "from");
+  normalized_from = g_utf8_normalize(from, -1, G_NORMALIZE_ALL);
+  if (!normalized_from) {
+    purple_debug_error(CARBONS_LOG_CATEGORY, "'from' is not valid UTF-8: '%s'\n", from);
+    ret_val = 0;
+    goto cleanup;
+  }
+  folded_from = g_utf8_casefold(normalized_from, -1);
 
+  if (g_strcmp0(folded_username, folded_from)) {
+    purple_debug_warning(CARBONS_LOG_CATEGORY, "Invalid sender: %s (should be: %s)\n", folded_from, folded_username);
+    ret_val = 0;
+    goto cleanup;
+  }
+  
+  ret_val = 1;
+
+cleanup:
+  if (!ret_val) {
     curr_node_p = outer_msg_stanza_p->child;
     while(curr_node_p) {
       temp_node_p = curr_node_p->next;
       xmlnode_free(curr_node_p);
       curr_node_p = temp_node_p;  
     }
-
-    ret_val = 0;
-  } else {
-    ret_val = 1;
   }
 
   g_strfreev(split);
+  g_free(normalized_username);
+  g_free(folded_username);
+  g_free(normalized_from);
+  g_free(folded_from);
 
   return ret_val;
 }
