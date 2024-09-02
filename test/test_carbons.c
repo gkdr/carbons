@@ -434,6 +434,41 @@ static void test_carbons_xml_received_cb_received_success(void ** state) {
 }
 
 /**
+ * Since JIDs need to be normalized and case-mapped before comparison, 'Romeo' can also send a valid carbons message to 'romeo'.
+ */
+static void test_carbons_xml_received_cb_received_casemapped_success(void ** state) {
+    (void) state;
+
+    const char * received_carbon_copy =
+        "<message xmlns='jabber:client' "
+                "from='Romeo@montague.example' "
+                "to='romeo@montague.example/home' "
+                "type='chat'>"
+            "<received xmlns='urn:xmpp:carbons:2'>"
+                "<forwarded xmlns='urn:xmpp:forward:0'>"
+                    "<message xmlns='jabber:client' "
+                            "from='juliet@capulet.example/balcony' "
+                            "to='romeo@montague.example/garden' "
+                            "type='chat'>"
+                        "<body>What man art thou that, thus bescreen'd in night, so stumblest on my counsel?</body>"
+                        "<thread>0e3141cd80894871a68e6fe6b1ec56fa</thread>"
+                    "</message>"
+                "</forwarded>"
+            "</received>"
+        "</message>";
+    xmlnode * received_carbons_node_p = xmlnode_from_str(received_carbon_copy, -1);
+
+    will_return(__wrap_purple_connection_get_account, NULL);
+    will_return(__wrap_purple_account_get_username, "romeo@montague.example");
+
+    carbons_xml_received_cb(NULL, &received_carbons_node_p);
+
+    assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "from"), "juliet@capulet.example/balcony");
+    assert_string_equal(xmlnode_get_attrib(received_carbons_node_p, "to"), "romeo@montague.example/garden");
+    assert_ptr_not_equal(xmlnode_get_child(received_carbons_node_p, "body"), NULL);
+}
+
+/**
  * Stop processing on malformed carbon-copy of received message: no 'forwarded' node.
  */
 static void test_carbons_xml_received_cb_received_no_forwarded(void ** state) {
@@ -881,6 +916,7 @@ int main(void) {
         cmocka_unit_test(test_carbons_xml_received_cb_invalid_sender_received),
         cmocka_unit_test(test_carbons_xml_received_cb_invalid_sender_sent),
         cmocka_unit_test(test_carbons_xml_received_cb_received_success),
+        cmocka_unit_test(test_carbons_xml_received_cb_received_casemapped_success),
         cmocka_unit_test(test_carbons_xml_received_cb_received_no_forwarded),
         cmocka_unit_test(test_carbons_xml_received_cb_received_no_message),
         cmocka_unit_test(test_carbons_xml_received_cb_sent_success),
